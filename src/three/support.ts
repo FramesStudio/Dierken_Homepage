@@ -1,9 +1,38 @@
 /** Leichte Hilfen ohne Three.js-Import (dürfen sofort geladen werden) */
+let gl: boolean | undefined;
 export function webglAvailable(): boolean {
+  if (gl !== undefined) return gl;
   try {
-    return !!document.createElement('canvas').getContext('webgl2');
+    const ctx = document.createElement('canvas').getContext('webgl2');
+    gl = !!ctx;
+    // Testkontext sofort freigeben (Browser begrenzen die Zahl gleichzeitiger WebGL-Kontexte)
+    ctx?.getExtension('WEBGL_lose_context')?.loseContext();
   } catch {
-    return false;
+    gl = false;
+  }
+  return gl;
+}
+
+const idle = (fn: () => void, timeout: number) =>
+  'requestIdleCallback' in window ? requestIdleCallback(fn, { timeout }) : setTimeout(fn, 50);
+
+/**
+ * Startet eine 3D-Szene, sobald sie in die Nähe kommt. Auf dem Desktop zusätzlich schon kurz nach dem
+ * Laden im Leerlauf, gestaffelt nach `order` – so ist der Aufbau meist fertig, bevor gescrollt wird.
+ */
+export function bootWhenNear(el: Element, order: number, boot: () => unknown) {
+  let done = false;
+  const go = () => {
+    if (done) return;
+    done = true;
+    io.disconnect();
+    boot();
+  };
+  const io = new IntersectionObserver(([e]) => e.isIntersecting && idle(go, 400), { rootMargin: '45% 0px' });
+  io.observe(el);
+  if (matchMedia('(min-width: 901px)').matches) {
+    const later = () => setTimeout(() => idle(go, 1500), 900 + order * 1100);
+    document.readyState === 'complete' ? later() : addEventListener('load', later, { once: true });
   }
 }
 

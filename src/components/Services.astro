@@ -63,7 +63,7 @@ const steps = [
 </section>
 
 <script>
-  import { webglAvailable } from '../three/support';
+  import { webglAvailable, bootWhenNear } from '../three/support';
 
   const root = document.querySelector<HTMLElement>('[data-services]');
   const track = root?.querySelector<HTMLElement>('[data-svc-track]');
@@ -107,24 +107,17 @@ const steps = [
 
     if (webglAvailable()) {
       root.classList.add('has-gl');
-      new IntersectionObserver(
-        ([e], io) => {
-          if (!e.isIntersecting) return;
-          io.disconnect();
-          const go = () =>
-            import('../three/display')
-              .then(({ initDisplay }) => {
-                disp = initDisplay(canvas, { reduced: !motion, observe: stage });
-                disp.setProgress(progress());
-              })
-              .catch((err) => {
-                root.classList.remove('has-gl');
-                console.warn('[leistungen] WebGL deaktiviert', err);
-              });
-          'requestIdleCallback' in window ? requestIdleCallback(go, { timeout: 400 }) : setTimeout(go, 50);
-        },
-        { rootMargin: '45% 0px' },
-      ).observe(root);
+      bootWhenNear(root, 3, () =>
+        import('../three/display')
+          .then(({ initDisplay }) => {
+            disp = initDisplay(canvas, { reduced: !motion, observe: stage });
+            disp.setProgress(progress());
+          })
+          .catch((err) => {
+            root.classList.remove('has-gl');
+            console.warn('[leistungen] WebGL deaktiviert', err);
+          }),
+      );
     }
   }
 </script>

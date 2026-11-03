@@ -138,7 +138,9 @@ export function initLibrary(
     }
     // Makro-Ziel: eine Fugenkreuzung bzw. Kante der Referenzfliese
     const jp = ref && m.size ? cellCorners(ref, m.size[0], m.size[1])[1] : [0.4, 0.3];
-    return { m, mesh, cells, ref, joint: new THREE.Vector3(jp[0], jp[1], FRONT + 0.012) };
+    // ab diesem Zeitpunkt liegen alle Fliesen – danach keine Matrix-Updates mehr nötig
+    const settle = cells.reduce((mx, c) => Math.max(mx, c.d), 0) * 0.75 + 0.22 + DUR;
+    return { m, mesh, cells, ref, settle, done: false, joint: new THREE.Vector3(jp[0], jp[1], FRONT + 0.012) };
   });
 
   // Lage im Raum: leicht gedreht, damit Dicke, Kante und Schatten sichtbar werden
@@ -273,6 +275,7 @@ export function initLibrary(
     if (i === current) return;
     previous = current;
     current = i;
+    sets[i].done = false;
     switchedAt = performance.now() / 1000;
   };
 
@@ -285,7 +288,10 @@ export function initLibrary(
 
     // Fliesen
     sets.forEach((s, i) => {
-      if (i === current) place(i, since, false);
+      if (i === current) {
+        if (!s.done) place(i, since, false);
+        s.done = since > s.settle;
+      }
       else if (i === previous && since < 2.2) place(i, since, true);
       else s.mesh.visible = false;
     });
@@ -333,7 +339,10 @@ export function initLibrary(
   });
 
   if (opts.reduced) stage.onResize(() => stage.renderOnce());
-  else stage.start();
+  else {
+    // Fliesen werden mit Schnittebenen gerendert – diese Shader-Variante mit vorbereiten
+    stage.prepare([{ root: panel, clipping: clip }]);
+  }
 
   return {
     setProgress(v: number) {
@@ -343,6 +352,7 @@ export function initLibrary(
     show(i: number) {
       previous = -1;
       current = i;
+      sets[i].done = false;
       switchedAt = -10;
       stage.renderOnce();
     },

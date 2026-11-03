@@ -194,7 +194,7 @@ export function initHeroWall(canvas: HTMLCanvasElement, o: HeroWallOptions) {
   if (o.reduced) {
     stage.onResize(() => stage.renderOnce());
   } else {
-    stage.start();
+    stage.prepare();
   }
   return stage;
 }

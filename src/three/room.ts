@@ -3,28 +3,15 @@
  * 01 Rohbau im Abendlicht · 02 Linienlaser & Aufmaß · 03 XXL-Muster · 04 Wand (raumhohe Travertin-Platten)
  * 05 Boden · 06 Einrichtung · 07 Licht & Stimmung · 08 Makro auf die Fuge
  * Alle Zustände werden aus p (0…1, Scroll) berechnet.
+ *
+ * Performance: ein einziger Render-Durchgang ohne Postprocessing. Leuchten (Laser, LED, Halo, Kerzen)
+ * entsteht über additive Glow-Flächen, der Spiegel über eine Cube-Map, die nur bei Änderungen
+ * Seite für Seite neu gerendert wird, die Schattenkarte nur wenn sich die Szene bewegt.
+ * Alle Shader – auch die Varianten für die Cube-Map – werden vor dem Start im Hintergrund kompiliert.
  */
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
-import { Reflector } from 'three/addons/objects/Reflector.js';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { Pass } from 'three/addons/postprocessing/Pass.js';
-
-/** Hilfs-Pass: führt nur eine Funktion aus (z. B. Objekte für den AO-Durchgang ausblenden) */
-class FnPass extends Pass {
-  constructor(private fn: () => void) {
-    super();
-    this.needsSwap = false;
-  }
-  render() {
-    this.fn();
-  }
-}
 import { createStage, clamp01, lerp, easeInOut, easeOut, range } from './engine';
 import { tileMaterial, addTileAttributes } from './materials';
 import { RANGES } from './support';
@@ -39,6 +26,26 @@ const SLAB_W = (X1 - X0) / 4; // 1,05 m – raumhoch
 const JOINT = 0.002;
 const PRE = 0.12; // Vorwand Dusche
 const NICHE = { z0: -1.38, z1: -0.58, y0: 1.02, y1: 1.32 };
+
+/** Weicher Verlauf als Textur für Glow-Flächen: radial (Punkt), Ring oder quer zu einer Linie */
+function glowTexture(kind: 'dot' | 'ring' | 'line' | 'wash'): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = kind === 'line' || kind === 'wash' ? 4 : 128;
+  c.height = 128;
+  const g = c.getContext('2d')!;
+  const stops: [number, number][] =
+    kind === 'dot' ? [[0, 1], [0.2, 0.55], [0.5, 0.12], [1, 0]]
+    : kind === 'ring' ? [[0, 0], [0.5, 0], [0.6, 0.85], [0.66, 0.5], [0.8, 0.12], [1, 0]]
+    : kind === 'line' ? [[0, 0], [0.35, 0.12], [0.5, 1], [0.65, 0.12], [1, 0]]
+    : [[0, 1], [0.25, 0.4], [1, 0]];
+  const grd = kind === 'dot' || kind === 'ring' ? g.createRadialGradient(64, 64, 0, 64, 64, 64) : g.createLinearGradient(0, 0, 0, 128);
+  for (const [o, a] of stops) grd.addColorStop(o, `rgba(255,255,255,${a})`);
+  g.fillStyle = grd;
+  g.fillRect(0, 0, c.width, c.height);
+  return new THREE.CanvasTexture(c);
+}
+const glowMat = (map: THREE.Texture, color: THREE.ColorRepresentation) =>
+  new THREE.MeshBasicMaterial({ map, color, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false });
 
 // Kamerapfad [p, Position, Ziel]
 const CAM: [number, [number, number, number], [number, number, number]][] = [
@@ -62,6 +69,9 @@ export function initRoom(canvas: HTMLCanvasElement, opts: { observe?: Element; s
   RectAreaLightUniformsLib.init();
   const stage = createStage(canvas, { fov: 40, shadows: true, envIntensity: 0.35, observe: opts.observe });
   const { scene, camera, renderer } = stage;
+  // Schattenkarte nur neu rechnen, wenn sich etwas bewegt (siehe update)
+  renderer.shadowMap.autoUpdate = false;
+  let shadowP = -1;
   const hq = !stage.size.mobile && innerWidth > 900;
   scene.background = new THREE.Color('#15110d');
   renderer.toneMappingExposure = 1.0;
@@ -72,13 +82,13 @@ export function initRoom(canvas: HTMLCanvasElement, opts: { observe?: Element; s
   const rawSide = tileMaterial({ kind: 'clay', base: '#a29d95', plane: 2 });
   const screed = tileMaterial({ kind: 'concrete', plane: 1 });
   const ceilingMat = tileMaterial({ kind: 'clay', base: '#ece6dc', plane: 1 });
-  const travWall = tileMaterial({ kind: 'travertine', base: SAND, plane: 0, instanced: true, tile: [SLAB_W, H] });
-  const travSide = tileMaterial({ kind: 'travertine', base: SAND, plane: 2 });
-  const travTop = tileMaterial({ kind: 'travertine', base: SAND, plane: 1 });
-  const travFloor = tileMaterial({ kind: 'travertine', base: SAND_FLOOR, plane: 1, instanced: true, tile: [SLAB_W, 1.2] });
+  const travWall = tileMaterial({ kind: 'travertine', base: SAND, plane: 0, instanced: true, tile: [SLAB_W, H], clearcoat: 0 });
+  const travSide = tileMaterial({ kind: 'travertine', base: SAND, plane: 2, clearcoat: 0 });
+  const travTop = tileMaterial({ kind: 'travertine', base: SAND, plane: 1, clearcoat: 0 });
+  const travFloor = tileMaterial({ kind: 'travertine', base: SAND_FLOOR, plane: 1, instanced: true, tile: [SLAB_W, 1.2], clearcoat: 0 });
   const fluted = tileMaterial({ kind: 'fluted', base: '#dccab0', plane: 2, bump: 0.012 });
   const walnut = tileMaterial({ kind: 'wood', base: '#8a6a52', plane: 0 });
-  const mineral = tileMaterial({ kind: 'mineral', base: '#f1ece4', plane: 0 });
+  const mineral = tileMaterial({ kind: 'mineral', base: '#f1ece4', plane: 0, clearcoat: 0 });
   const brass = new THREE.MeshStandardMaterial({ color: '#c7a26b', metalness: 1, roughness: 0.28 });
   const black = new THREE.MeshStandardMaterial({ color: '#16161a', metalness: 0.6, roughness: 0.4 });
 
@@ -246,7 +256,7 @@ export function initRoom(canvas: HTMLCanvasElement, opts: { observe?: Element; s
     rack.rotation.x = -0.18;
     site.add(rack);
     for (let i = 0; i < 3; i++) {
-      const slab = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.6, 0.012), i === 2 ? tileMaterial({ kind: 'travertine', base: SAND, plane: 0 }) : new THREE.MeshStandardMaterial({ color: '#d8d3ca', roughness: 0.9 }));
+      const slab = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.6, 0.012), i === 2 ? tileMaterial({ kind: 'travertine', base: SAND, plane: 0, clearcoat: 0 }) : new THREE.MeshStandardMaterial({ color: '#d8d3ca', roughness: 0.9 }));
       slab.position.set(-0.2 + (i - 1) * 0.04, 0.8, -1.5 + i * 0.03);
       slab.rotation.x = -0.18;
       site.add(slab);
@@ -256,20 +266,26 @@ export function initRoom(canvas: HTMLCanvasElement, opts: { observe?: Element; s
 
   // ---------- Linienlaser (Planung) ----------
   const laserMat = new THREE.MeshBasicMaterial({ color: new THREE.Color('#38ff6a').multiplyScalar(3), toneMapped: false, transparent: true });
-  const laserLines: { mesh: THREE.Mesh; axis: 'x' | 'y' | 'z'; d: number }[] = [];
-  const laser = (w: number, h: number, d: number, x: number, y: number, z: number, axis: 'x' | 'y' | 'z', delay: number) => {
+  const laserGlowMat = glowMat(glowTexture('line'), '#38ff6a');
+  const laserLines: { mesh: THREE.Mesh; glow: THREE.Mesh; axis: 'x' | 'y' | 'z'; d: number }[] = [];
+  /** Linie + Lichtschein auf der Fläche, auf die sie fällt (Rotation legt die Glow-Fläche dorthin) */
+  const laser = (w: number, h: number, d: number, x: number, y: number, z: number, axis: 'x' | 'y' | 'z', delay: number, rot: [number, number, number]) => {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), laserMat);
     m.position.set(x, y, z);
-    scene.add(m);
-    laserLines.push({ mesh: m, axis, d: delay });
+    const glow = new THREE.Mesh(new THREE.PlaneGeometry(Math.max(w, h, d), 0.07), laserGlowMat);
+    glow.position.set(x, y, z);
+    glow.rotation.set(...rot);
+    glow.renderOrder = 12;
+    scene.add(m, glow);
+    laserLines.push({ mesh: m, glow, axis, d: delay });
   };
   const LY = 1.0;
   const T = 0.004;
-  laser(X1 - X0, T, T, 0, LY, Z0 + 0.003, 'x', 0.1);
-  laser(T, T, Z1 - Z0, X0 + 0.003, LY, 0, 'z', 0.2);
-  laser(T, T, Z1 - Z0, X1 - 0.003, LY, 0, 'z', 0.2);
-  laser(T, H, T, 0, H / 2, Z0 + 0.003, 'y', 0.35);
-  laser(T, T, Z1 - Z0, 0, 0.003, 0, 'z', 0.45);
+  laser(X1 - X0, T, T, 0, LY, Z0 + 0.004, 'x', 0.1, [0, 0, 0]);
+  laser(T, T, Z1 - Z0, X0 + 0.004, LY, 0, 'z', 0.2, [0, Math.PI / 2, 0]);
+  laser(T, T, Z1 - Z0, X1 - 0.004, LY, 0, 'z', 0.2, [0, -Math.PI / 2, 0]);
+  laser(T, H, T, 0, H / 2, Z0 + 0.004, 'y', 0.35, [0, 0, Math.PI / 2]);
+  laser(T, T, Z1 - Z0, 0, 0.004, 0, 'z', 0.45, [-Math.PI / 2, 0, Math.PI / 2]);
   // Gerät auf Stativ
   const tripod = new THREE.Group();
   {
@@ -300,7 +316,7 @@ export function initRoom(canvas: HTMLCanvasElement, opts: { observe?: Element; s
   addTileAttributes(sampleGeo, new Float32Array(3), new Float32Array([0.41]));
   const sampleDefs = [
     { m: tileMaterial({ kind: 'marble', plane: 0, instanced: true, tile: [0.6, 1.2] }), x: -0.72 },
-    { m: tileMaterial({ kind: 'travertine', base: SAND, plane: 0, instanced: true, tile: [0.6, 1.2] }), x: 0 },
+    { m: tileMaterial({ kind: 'travertine', base: SAND, plane: 0, instanced: true, tile: [0.6, 1.2], clearcoat: 0 }), x: 0 },
     { m: tileMaterial({ kind: 'fluted', base: '#dccab0', plane: 0, instanced: true, tile: [0.6, 1.2], bump: 0.012 }), x: 0.72 },
   ];
   const samples = sampleDefs.map((d) => {
@@ -339,11 +355,16 @@ export function initRoom(canvas: HTMLCanvasElement, opts: { observe?: Element; s
   const led = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.008, NICHE.z1 - NICHE.z0 - 0.02), ledMat);
   led.position.set(X1 - PRE + 0.03, NICHE.y1 - 0.008, (NICHE.z0 + NICHE.z1) / 2);
   preWall.add(led);
-  const nicheLight = new THREE.RectAreaLight('#ffcf94', 0, NICHE.z1 - NICHE.z0, 0.08);
-  nicheLight.position.set(X1 - PRE / 2, NICHE.y1 - 0.01, (NICHE.z0 + NICHE.z1) / 2);
-  nicheLight.rotation.x = -Math.PI / 2;
-  nicheLight.rotation.z = Math.PI / 2;
-  preWall.add(nicheLight);
+  // Licht liegt direkt in der Szene: Lichter in ausgeblendeten Gruppen ändern die Lichtanzahl
+  // und würden alle Shader neu kompilieren
+  const nicheLight = new THREE.PointLight('#ffcf94', 0, 1.1, 2);
+  nicheLight.position.set(X1 - PRE - 0.02, NICHE.y1 - 0.05, (NICHE.z0 + NICHE.z1) / 2);
+  scene.add(nicheLight);
+  // Lichtschein der LED auf der Nischenrückwand (oben hell, nach unten auslaufend)
+  const nicheWash = new THREE.Mesh(new THREE.PlaneGeometry(NICHE.z1 - NICHE.z0 - 0.01, NICHE.y1 - NICHE.y0), glowMat(glowTexture('wash'), '#ffcf94'));
+  nicheWash.position.set(X1 - 0.0215, (NICHE.y0 + NICHE.y1) / 2, (NICHE.z0 + NICHE.z1) / 2);
+  nicheWash.rotation.y = -Math.PI / 2;
+  preWall.add(nicheWash);
   scene.add(preWall);
 
   // Rillenpaneele links neben dem Fenster
@@ -396,7 +417,7 @@ export function initRoom(canvas: HTMLCanvasElement, opts: { observe?: Element; s
     tub.add(shell);
     const water = new THREE.Mesh(
       new THREE.CircleGeometry(0.93, 64),
-      new THREE.MeshPhysicalMaterial({ color: '#b9c6c4', roughness: 0.02, metalness: 0, transparent: true, opacity: 0.82, clearcoat: 1 }),
+      new THREE.MeshStandardMaterial({ color: '#b9c6c4', roughness: 0.02, metalness: 0, transparent: true, opacity: 0.82 }),
     );
     water.rotation.x = -Math.PI / 2;
     water.position.y = 0.44;
@@ -443,16 +464,29 @@ export function initRoom(canvas: HTMLCanvasElement, opts: { observe?: Element; s
   const mirror = new THREE.Group();
   const halo = new THREE.Mesh(new THREE.RingGeometry(0.36, 0.47, 96), new THREE.MeshBasicMaterial({ color: '#ffcf96', toneMapped: false, transparent: true, opacity: 0 }));
   halo.position.z = 0.012;
-  mirror.add(halo);
-  let glass: THREE.Object3D;
-  if (hq) {
-    const r = new Reflector(new THREE.CircleGeometry(0.4, 96), { textureWidth: 768, textureHeight: 768, color: 0xb7b2aa, clipBias: 0.003 });
-    r.position.z = 0.035;
-    glass = r;
-  } else {
-    glass = new THREE.Mesh(new THREE.CircleGeometry(0.4, 96), new THREE.MeshStandardMaterial({ color: '#d9d6d0', metalness: 1, roughness: 0.06 }));
-    glass.position.z = 0.035;
-  }
+  const haloGlow = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.4), glowMat(glowTexture('ring'), '#ffc68a'));
+  haloGlow.position.z = 0.006;
+  mirror.add(halo, haloGlow);
+  const cubeRT = new THREE.WebGLCubeRenderTarget(hq ? 256 : 128, { type: THREE.HalfFloatType, generateMipmaps: false });
+  const cubeCam = new THREE.CubeCamera(0.05, 12, cubeRT);
+  scene.add(cubeCam);
+  // polierter Spiegel: direkte Cube-Map-Abfrage (kein PMREM nötig, keine Vorfilterung beim Aktualisieren)
+  const glass = new THREE.Mesh(
+    new THREE.CircleGeometry(0.4, 96),
+    new THREE.ShaderMaterial({
+      uniforms: { uEnv: { value: cubeRT.texture }, uTint: { value: new THREE.Color('#c9c4bc') } },
+      vertexShader: `varying vec3 vW; varying vec3 vN;
+        void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal);
+          gl_Position = projectionMatrix * viewMatrix * w; }`,
+      fragmentShader: `uniform samplerCube uEnv; uniform vec3 uTint; varying vec3 vW; varying vec3 vN;
+        void main(){ vec3 r = reflect(normalize(vW - cameraPosition), normalize(vN));
+          gl_FragColor = vec4(textureCube(uEnv, r).rgb * uTint, 1.0);
+          #include <tonemapping_fragment>
+          #include <colorspace_fragment>
+        }`,
+    }),
+  );
+  glass.position.z = 0.035;
   const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.03, 96), black);
   disc.rotation.x = Math.PI / 2;
   disc.position.z = 0.018;
@@ -462,9 +496,7 @@ export function initRoom(canvas: HTMLCanvasElement, opts: { observe?: Element; s
   // Glasduschwand mit Messingprofil, Regendusche
   const shower = new THREE.Group();
   {
-    const glassMat = hq
-      ? new THREE.MeshPhysicalMaterial({ color: '#ffffff', roughness: 0.03, transmission: 1, thickness: 0.01, ior: 1.5, transparent: true })
-      : new THREE.MeshPhysicalMaterial({ color: '#dfe7e6', roughness: 0.05, transparent: true, opacity: 0.18 });
+    const glassMat = new THREE.MeshStandardMaterial({ color: '#e4ecea', roughness: 0.04, transparent: true, opacity: 0.16, depthWrite: false });
     const pane = new THREE.Mesh(new THREE.BoxGeometry(0.008, 2.05, 1.3), glassMat);
     pane.position.set(0.95, 1.04, Z0 + 0.66);
     pane.castShadow = false;
@@ -521,8 +553,9 @@ export function initRoom(canvas: HTMLCanvasElement, opts: { observe?: Element; s
   addF(tree, 0.4);
   // Hocker mit Handtüchern und Kerzen
   const stool = new THREE.Group();
-  const candleLights: THREE.PointLight[] = [];
   const flameMat = new THREE.MeshBasicMaterial({ color: new THREE.Color('#ffb35c').multiplyScalar(2.5), toneMapped: false });
+  const flameGlow = new THREE.SpriteMaterial({ map: glowTexture('dot'), color: '#ffa552', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false });
+  const flameSprites: THREE.Sprite[] = [];
   {
     const seat = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.42, 48), walnut);
     seat.position.y = 0.21;
@@ -539,10 +572,11 @@ export function initRoom(canvas: HTMLCanvasElement, opts: { observe?: Element; s
       const flame = new THREE.Mesh(new THREE.SphereGeometry(0.008, 12, 8), flameMat);
       flame.scale.set(1, 2.2, 1);
       flame.position.set(cx - 0.06, 0.52 + ch + 0.016, cz);
-      const pl = new THREE.PointLight('#ff9e4a', 0, 1.6, 2);
-      pl.position.copy(flame.position);
-      candleLights.push(pl);
-      stool.add(candle, flame, pl);
+      const sprite = new THREE.Sprite(flameGlow);
+      sprite.position.copy(flame.position);
+      sprite.scale.setScalar(0.12);
+      flameSprites.push(sprite);
+      stool.add(candle, flame, sprite);
     }
     stool.position.set(-1.55, 0.014, 0.8);
   }
@@ -577,31 +611,27 @@ export function initRoom(canvas: HTMLCanvasElement, opts: { observe?: Element; s
     can.position.set(wx, H - 0.004, Z0 + 0.32);
     scene.add(can);
   }
-  const detailLight = new THREE.PointLight('#ffe2bd', 0, 1.2, 2);
-  scene.add(detailLight);
 
-  // ---------- Postprocessing ----------
-  const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: hq ? 4 : 0 });
-  const composer = new EffectComposer(renderer, rt);
-  composer.addPass(new RenderPass(scene, camera));
-  let gtao: GTAOPass | null = null;
-  if (hq) {
-    gtao = new GTAOPass(scene, camera, 1, 1);
-    gtao.blendIntensity = 0.85;
-    gtao.updateGtaoMaterial({ radius: 0.3, distanceExponent: 1.5, thickness: 1, scale: 1 });
-    // Lichtstrahl & Staub sind Effekte, keine Geometrie – für den AO-Durchgang ausblenden
-    composer.addPass(new FnPass(() => { beam.visible = false; dust.visible = false; }));
-    composer.addPass(gtao);
-    composer.addPass(new FnPass(() => { beam.visible = true; dust.visible = true; }));
-  }
-  const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.22, 0.4, 0.97);
-  composer.addPass(bloom);
-  composer.addPass(new OutputPass());
-  stage.setRender(() => composer.render());
+  // ---------- Rendern ----------
+  // Spiegel: nach einer Änderung werden die sechs Cube-Seiten auf sechs Bilder verteilt neu gerendert
+  let cubeFaces = 0;
+  let cubeP = -1;
+  let cubeT = -1;
+  const cubeFace = (i: number) => {
+    glass.visible = false;
+    renderer.setRenderTarget(cubeRT, i);
+    renderer.render(scene, cubeCam.children[i] as THREE.Camera);
+    renderer.setRenderTarget(null);
+    glass.visible = true;
+  };
+  const isStatic = opts.staticP !== undefined;
+  stage.setRender(() => {
+    if (isStatic) while (cubeFaces > 0) cubeFace(--cubeFaces);
+    renderer.render(scene, camera);
+    if (!isStatic && cubeFaces > 0) cubeFace(--cubeFaces);
+  });
   stage.onResize(() => {
     const dpr = renderer.getPixelRatio();
-    composer.setPixelRatio(dpr);
-    composer.setSize(stage.size.w, stage.size.h);
     camera.fov = stage.size.mobile ? 58 : 40;
     camera.updateProjectionMatrix();
     dustMat.uniforms.uScale.value = stage.size.h * dpr * 0.0022;
@@ -650,25 +680,29 @@ export function initRoom(canvas: HTMLCanvasElement, opts: { observe?: Element; s
     dustMat.uniforms.uT.value = t;
     dustMat.uniforms.uI.value = 0.6 * (1 - s8);
     for (const w of washers) w.intensity = lerp(0, 5, easeOut(range(s7, 0, 0.6)));
-    nicheLight.intensity = lerp(0, 6, easeOut(range(s7, 0.1, 0.7)));
+    nicheLight.intensity = lerp(0, 0.35, easeOut(range(s7, 0.1, 0.7)));
     ledMat.color.setRGB(1, 0.84, 0.63).multiplyScalar(lerp(0.15, 1.6, easeOut(range(s7, 0.1, 0.7))));
     (halo.material as THREE.MeshBasicMaterial).opacity = easeOut(range(s7, 0.2, 0.8));
     (halo.material as THREE.MeshBasicMaterial).color.setRGB(1, 0.81, 0.59).multiplyScalar(1.4);
-    candleLights.forEach((l, i) => (l.intensity = lerp(0, 0.5, range(s7, 0.3, 0.9)) * (0.85 + Math.sin(t * 9 + i * 3) * 0.08 + Math.sin(t * 23 + i) * 0.05)));
+    (haloGlow.material as THREE.MeshBasicMaterial).opacity = 0.75 * easeOut(range(s7, 0.2, 0.8));
+    (nicheWash.material as THREE.MeshBasicMaterial).opacity = 0.55 * easeOut(range(s7, 0.1, 0.7));
+    const candle = range(s7, 0.3, 0.9);
+    flameGlow.opacity = 0.75 * candle;
+    flameSprites.forEach((sp, i) => sp.scale.setScalar(0.12 * (0.9 + Math.sin(t * 9 + i * 3) * 0.06 + Math.sin(t * 23 + i) * 0.04)));
     flameMat.visible = s7 > 0.3;
     hemi.intensity = lerp(0.14, 0.22, s4);
     scene.environmentIntensity = lerp(0.22, 0.38, s4);
-    detailLight.intensity = 0;
-    detailLight.position.set(-1.05 + Math.sin(t * 0.5) * 0.12, 1.5, Z0 + 0.1);
     renderer.toneMappingExposure = lerp(0.9, 0.98, golden);
 
     // Linienlaser
     const laserOn = easeOut(range(s2, 0, 0.6)) * (1 - easeInOut(range(s4, 0, 0.35)));
     laserMat.opacity = laserOn;
+    laserGlowMat.opacity = laserOn * 0.6;
     for (const l of laserLines) {
       const k = Math.max(0.0001, easeOut(range(s2, l.d, l.d + 0.4)));
-      l.mesh.visible = laserOn > 0.01;
+      l.mesh.visible = l.glow.visible = laserOn > 0.01;
       l.mesh.scale.set(l.axis === 'x' ? k : 1, l.axis === 'y' ? k : 1, l.axis === 'z' ? k : 1);
+      l.glow.scale.x = k;
     }
     const tri = easeOut(range(s2, 0, 0.3)) * (1 - easeInOut(range(s3, 0, 0.35)));
     tripod.visible = tri > 0.01;
@@ -734,6 +768,18 @@ export function initRoom(canvas: HTMLCanvasElement, opts: { observe?: Element; s
       f.obj.position.copy(f.base).addScaledVector(f.from, 1 - k);
       f.obj.scale.copy(f.s).multiplyScalar(lerp(0.92, 1, k));
     }
+
+    // Schatten nur bei Bewegung, Spiegel nur bei sichtbarer Änderung neu rechnen
+    if (p !== shadowP) {
+      renderer.shadowMap.needsUpdate = true;
+      shadowP = p;
+    }
+    if (mirror.visible && Math.abs(p - cubeP) > 0.002 && (t - cubeT > 0.2 || isStatic)) {
+      mirror.getWorldPosition(cubeCam.position).z += 0.06;
+      cubeFaces = 6;
+      cubeP = p;
+      cubeT = t;
+    }
   };
   stage.onFrame((t) => update(t));
 
@@ -747,8 +793,11 @@ export function initRoom(canvas: HTMLCanvasElement, opts: { observe?: Element; s
     });
   };
 
-  if (opts.staticP !== undefined) stage.onResize(() => stage.renderOnce());
-  else stage.start();
+  if (isStatic) stage.onResize(() => stage.renderOnce());
+  else {
+    // Shader-Varianten für das Rendern in die Cube-Map (linear, ohne Tonemapping) gleich mitkompilieren
+    stage.prepare([{ camera: cubeCam.children[0] as THREE.Camera, target: cubeRT }]);
+  }
 
   return {
     setProgress: (v) => {

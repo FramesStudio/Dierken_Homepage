@@ -218,7 +218,7 @@ export function initDisplay(canvas: HTMLCanvasElement, opts: { reduced: boolean;
   });
 
   if (opts.reduced) stage.onResize(() => stage.renderOnce());
-  else stage.start();
+  else stage.prepare();
 
   return {
     setProgress(v: number) {

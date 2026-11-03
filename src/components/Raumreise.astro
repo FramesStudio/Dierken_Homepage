@@ -69,7 +69,7 @@ const labels = ['Nivellierlinie +1,00 m', '4,20 m', '2,90 m'];
 </section>
 
 <script>
-  import { webglAvailable, RANGES } from '../three/support';
+  import { webglAvailable, bootWhenNear, RANGES } from '../three/support';
 
   const root = document.documentElement;
   const section = document.querySelector<HTMLElement>('[data-raumreise]');
@@ -96,7 +96,11 @@ const labels = ['Nivellierlinie +1,00 m', '4,20 m', '2,90 m'];
       const room = initRoom(canvas, { observe: stage });
       let current = 0;
       let active = -1;
+      let shownP = '';
       let last = performance.now();
+      // Schleife läuft nur, solange die Raumreise in der Nähe des Bildschirms ist
+      let near = false;
+      let raf = 0;
       const target = () => {
         const len = track.offsetHeight - stage.offsetHeight;
         return len > 0 ? Math.min(1, Math.max(0, -track.getBoundingClientRect().top / len)) : 0;
@@ -108,7 +112,8 @@ const labels = ['Nivellierlinie +1,00 m', '4,20 m', '2,90 m'];
         current += (t - current) * (1 - Math.pow(0.88, dt * 60));
         if (Math.abs(t - current) < 0.0003) current = t;
         room.setProgress(current);
-        stage.style.setProperty('--p', current.toFixed(4));
+        const pStr = current.toFixed(4);
+        if (pStr !== shownP) stage.style.setProperty('--p', (shownP = pStr));
         let idx = 0;
         RANGES.forEach(([a], i) => current >= a && (idx = i));
         if (idx !== active) {
@@ -122,25 +127,26 @@ const labels = ['Nivellierlinie +1,00 m', '4,20 m', '2,90 m'];
           el.style.transform = `translate(${l.x.toFixed(1)}px, ${l.y.toFixed(1)}px) translate(-50%, -120%)`;
           el.style.opacity = l.o.toFixed(3);
         });
-        requestAnimationFrame(tick);
+        raf = near ? requestAnimationFrame(tick) : 0;
       };
-      requestAnimationFrame(tick);
+      new IntersectionObserver(
+        ([e]) => {
+          near = e.isIntersecting;
+          if (near && !raf) {
+            last = performance.now();
+            raf = requestAnimationFrame(tick);
+          }
+        },
+        { rootMargin: '20% 0px' },
+      ).observe(track);
     };
 
-    new IntersectionObserver(
-      ([e], io) => {
-        if (e.isIntersecting) {
-          io.disconnect();
-          const go = () =>
-            boot().catch((err) => {
-              section.classList.remove('has-gl');
-              console.warn('[raumreise] WebGL deaktiviert', err);
-            });
-          'requestIdleCallback' in window ? requestIdleCallback(go, { timeout: 400 }) : setTimeout(go, 50);
-        }
-      },
-      { rootMargin: '45% 0px' },
-    ).observe(section);
+    bootWhenNear(section, 1, () =>
+      boot().catch((err) => {
+        section.classList.remove('has-gl');
+        console.warn('[raumreise] WebGL deaktiviert', err);
+      }),
+    );
   }
 </script>
 

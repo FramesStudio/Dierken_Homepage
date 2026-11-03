@@ -90,7 +90,7 @@ const n = items.length;
 </section>
 
 <script>
-  import { webglAvailable } from '../three/support';
+  import { webglAvailable, bootWhenNear } from '../three/support';
 
   const root = document.querySelector<HTMLElement>('[data-library]');
   const track = root?.querySelector<HTMLElement>('[data-lib-track]');
@@ -212,25 +212,18 @@ const n = items.length;
 
     if (webglAvailable()) {
       root.classList.add('has-gl');
-      new IntersectionObserver(
-        ([e], io) => {
-          if (!e.isIntersecting) return;
-          io.disconnect();
-          const go = () =>
-            import('../three/library')
-              .then(({ initLibrary }) => {
-                lib = initLibrary(canvas, JSON.parse(canvas.dataset.mats!), { reduced: !motion, observe: stage, onFrame: drawDims });
-                lib.setProgress(progress());
-                if (!motion) lib.show(active);
-              })
-              .catch((err) => {
-                root.classList.remove('has-gl');
-                console.warn('[material] WebGL deaktiviert', err);
-              });
-          'requestIdleCallback' in window ? requestIdleCallback(go, { timeout: 400 }) : setTimeout(go, 50);
-        },
-        { rootMargin: '45% 0px' },
-      ).observe(root);
+      bootWhenNear(root, 2, () =>
+        import('../three/library')
+          .then(({ initLibrary }) => {
+            lib = initLibrary(canvas, JSON.parse(canvas.dataset.mats!), { reduced: !motion, observe: stage, onFrame: drawDims });
+            lib.setProgress(progress());
+            if (!motion) lib.show(active);
+          })
+          .catch((err) => {
+            root.classList.remove('has-gl');
+            console.warn('[material] WebGL deaktiviert', err);
+          }),
+      );
     }
   }
 </script>

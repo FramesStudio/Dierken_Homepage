@@ -23,7 +23,7 @@ Ohne diese Variablen baut `npm run build` wie gehabt für www.fliesen-dierken.de
 Die Fliese ist das Gestaltungsprinzip der ganzen Seite:
 
 - **Hero:** Wand aus glasierten 3D-Fliesen in Markenblau; Licht folgt dem Zeiger. Beim Scrollen drehen sich die Fliesen auf warmen Travertin – der Hero wechselt von Nacht zu Tag, Schrift und Navigation gehen ins Markenblau (`src/three/hero-wall.ts`).
-- **Raumreise:** Ein Luxusbad entsteht in 3D – Rohbau im Abendlicht mit Lichtstrahl, Kreuzlinienlaser beim Aufmaß, XXL-Muster, raumhohe Travertin-Platten (2 mm Fuge), Vorwand mit LED-Nische, Rillenpaneele, Mineralguss-Wanne, Messing, hinterleuchteter Spiegel, Wandfluter, Makro auf die Fuge. Mit Ambient Occlusion und Bloom (`src/three/room.ts`).
+- **Raumreise:** Ein Luxusbad entsteht in 3D – Rohbau im Abendlicht mit Lichtstrahl, Kreuzlinienlaser beim Aufmaß, XXL-Muster, raumhohe Travertin-Platten (2 mm Fuge), Vorwand mit LED-Nische, Rillenpaneele, Mineralguss-Wanne, Messing, hinterleuchteter Spiegel, Wandfluter, Makro auf die Fuge. Leuchten über weiche Lichtscheine statt Postprocessing, Spiegel über eine Cube-Map (`src/three/room.ts`).
 - **Material erleben:** gepinnte Bühne im Spotlicht – Wandprobe 3,60 × 3,00 m auf Sockel, je Material Kamerafahrt von der Totalen bis an die Fuge, Lichtschwenk beim Wechsel, Maßlinien zeichnen sich an die Referenzfliese (`src/three/library.ts`).
 - **Leistungen:** Schwenkrahmen-Display wie in der Ausstellung – beim Scrollen blättern die Rahmen wie Buchseiten, jede Doppelseite eine Leistung, zuletzt Fliese für Fliese verlegt (`src/three/display.ts`).
 - **Startseite ohne Fotos:** Handwerk als kinetische Typografie mit Jahreszähler, Besuch mit dem D-Zeichen als CSS-3D-Relief. Bilder auf Unterseiten erscheinen per Navy-Vorhang (`data-tiles`).
@@ -50,9 +50,16 @@ Alle Materialien (Travertin, Calacatta, Rillenrelief, Glasur, Holz, Mikrozement,
 - `CAM` in `src/three/room.ts`: Kamerapfad (p, Position, Ziel) – als Spline interpoliert.
 - `PALETTE`, `ROWS_*` in `hero-wall.ts`: Glasurfarben und Fliesengröße der Hero-Wand.
 - Höhe der Szenen: `.hero-track` (210svh) und `.rr-track` (820svh, mobil 720svh).
-- Three.js wird erst nach dem ersten Paint bzw. bei Annäherung an die Szene nachgeladen (~140 KB gzip).
+- Three.js wird erst nach dem ersten Paint nachgeladen (~140 KB gzip). Auf dem Desktop fahren die Szenen danach gestaffelt im Leerlauf hoch, sonst bei Annäherung (`bootWhenNear` in `src/three/support.ts`).
 - Ohne WebGL: CSS-Fliesenwand im Hero, Raumfoto in der Raumreise, Materialtexte ohne Tafel.
 - Reduzierte Bewegung: Standbilder der Szenen, keine gepinnten Abschnitte.
+
+### Performance
+Ziel: unter 16 ms pro Bild, keine Hänger beim Scrollen. Gemessen auf einem M3 Pro (Retina, 1512 × 945), Raumreise vorher ~90 ms, jetzt ~11 ms pro Bild.
+- **Ein Render-Durchgang je Szene**, kein Postprocessing. Glow (Laser, LED, Halo, Kerzen) über additive Flächen.
+- **Shader vorab und portionsweise kompilieren** (`prepare` in `src/three/engine.ts`, ~6 ms je Bild), inklusive der Varianten für die Spiegel-Cube-Map und die Schnittebenen der Materialwand. Danach wird nichts mehr nachkompiliert, solange die Lichtanzahl gleich bleibt: Lichter deshalb nie in Gruppen hängen, die ausgeblendet werden, und nur über `intensity` schalten.
+- **Adaptive Auflösung:** Fällt die Bildrate unter ~50 fps, sinkt die Pixeldichte stufenweise (`quality` in `engine.ts`).
+- **Schatten nur bei Bewegung** (Raumreise), Fliesen-Matrizen nur während der Animation (Materialwand).
 
 ### Bewegungsvertrag
 `<html>` erhält per Inline-Skript `js` und `motion` bzw. `reduced`. Ohne `motion` ist alles statisch sichtbar; die Raumreise zeigt dann ein Standbild des fertigen 3D-Raums und alle acht Schritte als Liste.

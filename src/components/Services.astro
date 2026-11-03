@@ -1,4 +1,5 @@
 ---
+import { withBase } from '../lib/url';
 /**
  * Leistungen – Schwenkrahmen-Display zum Durchblättern (src/three/display.ts).
  * Jede Doppelseite eine Leistung; auf der letzten werden die Fliesen einzeln gesetzt.
@@ -53,7 +54,7 @@ const steps = [
           <ol class="svc-dots" role="list" aria-hidden="true">
             {steps.map((s, i) => <li data-svc-dot={i + 1}><span class="num">{s.n}</span></li>)}
           </ol>
-          {teaser && <a class="link" href="/leistungen/">Alle Leistungen <span class="arrow" aria-hidden="true">→</span></a>}
+          {teaser && <a class="link" href={withBase('/leistungen/')}>Alle Leistungen <span class="arrow" aria-hidden="true">→</span></a>}
         </div>
       </div>
       <p class="svc-credit" aria-hidden="true">Schwenkrahmen wie in unserer Ausstellung · 3D, im Code erzeugt</p>

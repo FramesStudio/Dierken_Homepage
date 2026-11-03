@@ -1,4 +1,5 @@
 ---
+import { withBase } from '../lib/url';
 /**
  * Hero „Fliesenwand“
  * WebGL-Wand aus glasierten Fliesen (src/three/hero-wall.ts). Beim Scrollen drehen sich die
@@ -40,7 +41,7 @@ const fallback = Array.from({ length: 12 * 14 }, () => glazes[Math.floor(rnd() *
             fachgerecht bei Ihnen vor Ort. Als Familienbetrieb – seit {company.founded}.
           </p>
           <div class="hero-cta">
-            <a class="btn btn--light" href="/kontakt/">Beratung vereinbaren <span class="arrow" aria-hidden="true">→</span></a>
+            <a class="btn btn--light" href={withBase('/kontakt/')}>Beratung vereinbaren <span class="arrow" aria-hidden="true">→</span></a>
             <a class="link" href="#raumreise">Raumreise starten <span class="arrow" aria-hidden="true">↓</span></a>
           </div>
         </div>

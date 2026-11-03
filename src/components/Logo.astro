@@ -1,4 +1,5 @@
 ---
+import { withBase } from '../lib/url';
 /**
  * Logo als Vektor (public/brand/dierken-logo.svg), nachgebaut aus den Markenmotiven:
  * Fläche, D-Zeichen und Trenner geometrisch, Schriftzug aus dem Original nachgezeichnet.
@@ -15,7 +16,7 @@ const width = Math.round((340 / 64) * height * 100) / 100;
 
 <img
   class:list={['logo', cls]}
-  src="/brand/dierken-logo.svg"
+  src={withBase('/brand/dierken-logo.svg')}
   width={width}
   height={height}
   alt="Dierken"

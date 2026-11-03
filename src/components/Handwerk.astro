@@ -1,4 +1,5 @@
 ---
+import { withBase } from '../lib/url';
 /**
  * Menschen & Handwerk – kinetische Typografie statt Fotos.
  * Zwei Schriftbänder laufen gegenläufig mit dem Scroll, ein Zähler zählt die Jahre seit 1985.
@@ -27,7 +28,7 @@ const lineB = Array.from({ length: 4 }, () => `Seit ${company.founded} · Lohne 
         <p>Seit der Gründung sind wir in allen Bereichen des Fliesenhandwerks tätig – im Neubau, bei Renovierung und Sanierung.</p>
         <p>Wir setzen auf kompetente und vertrauensvolle Zusammenarbeit mit Kunden, Geschäftspartnern und Herstellern – und seit jeher auf ein zuverlässiges Team gut ausgebildeter Fachkräfte.</p>
       </div>
-      <a class="btn btn--light" href="/karriere/">Verstärkung gesucht? Zur Karriere <span class="arrow" aria-hidden="true">→</span></a>
+      <a class="btn btn--light" href={withBase('/karriere/')}>Verstärkung gesucht? Zur Karriere <span class="arrow" aria-hidden="true">→</span></a>
     </div>
   </div>
 

@@ -1,4 +1,5 @@
 ---
+import { withBase } from '../lib/url';
 /**
  * Signature-Sequenz „Raumreise“ – ein Luxusbad entsteht in 3D, vollständig im Code (src/three/room.ts).
  * Rohbau im Abendlicht → Linienlaser → XXL-Muster → raumhohe Platten → Boden → Einrichtung → Licht → Fuge.
@@ -61,8 +62,8 @@ const labels = ['Nivellierlinie +1,00 m', '4,20 m', '2,90 m'];
   <div class="rr-outro wrap">
     <p class="h3">Und Ihr Bad? <em>Lassen Sie uns darüber sprechen.</em></p>
     <div class="rr-cta">
-      <a class="btn" href="/kontakt/">Beratung vereinbaren <span class="arrow" aria-hidden="true">→</span></a>
-      <a class="btn btn--outline" href="/ausstellung/">Ausstellung besuchen</a>
+      <a class="btn" href={withBase('/kontakt/')}>Beratung vereinbaren <span class="arrow" aria-hidden="true">→</span></a>
+      <a class="btn btn--outline" href={withBase('/ausstellung/')}>Ausstellung besuchen</a>
     </div>
   </div>
 </section>

@@ -47,12 +47,14 @@ export const routeUrl =
 export const osmUrl =
   'https://www.openstreetmap.org/search?query=Industriering%2013%2C%2049393%20Lohne';
 
+import { withBase } from '../lib/url';
+
 export const nav = [
-  { href: '/leistungen/', label: 'Leistungen' },
-  { href: '/ausstellung/', label: 'Ausstellung' },
-  { href: '/inspiration/', label: 'Inspiration' },
-  { href: '/karriere/', label: 'Karriere' },
-  { href: '/kontakt/', label: 'Kontakt' },
+  { href: withBase('/leistungen/'), label: 'Leistungen' },
+  { href: withBase('/ausstellung/'), label: 'Ausstellung' },
+  { href: withBase('/inspiration/'), label: 'Inspiration' },
+  { href: withBase('/karriere/'), label: 'Karriere' },
+  { href: withBase('/kontakt/'), label: 'Kontakt' },
 ] as const;
 
 /** Leistungsliste – wörtlich von /leistungen.html übernommen, thematisch gruppiert */

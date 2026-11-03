@@ -11,6 +11,12 @@ npm run preview   # Build lokal ansehen
 
 `?motion=0` an eine URL hängen zeigt die reduzierte Variante (wie bei `prefers-reduced-motion`).
 
+## Vorschau auf GitHub Pages
+
+`npm run deploy:preview` baut die Seite und veröffentlicht sie über den Branch `gh-pages` unter **https://framesstudio.github.io/Dierken_Homepage/** (`scripts/deploy-preview.sh`, braucht eine Anmeldung mit `gh auth login`). Ein Push auf `main` allein aktualisiert die Vorschau nicht.
+Die Vorschau läuft im Unterordner `/Dierken_Homepage` (`BASE_PATH`) und ist per `noindex` für Suchmaschinen gesperrt (`PUBLIC_PREVIEW=1`). Interne Links deshalb immer mit `withBase('/pfad/')` aus `src/lib/url.ts` schreiben.
+Ohne diese Variablen baut `npm run build` wie gehabt für www.fliesen-dierken.de.
+
 ## Leitidee: Taktil & Material
 
 **„Ihren Ideen Raum geben.“** – abgeleitet aus dem bisherigen Claim *„geben Sie Ihren Ideen Räume – Fliese für Fliese“*.

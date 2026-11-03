@@ -1,4 +1,5 @@
 ---
+import { withBase } from '../lib/url';
 import Logo from './Logo.astro';
 import { nav, company, hours } from '../data/site';
 
@@ -13,7 +14,7 @@ const isActive = (href: string) => path === href || path.startsWith(href);
 
 <header class:list={['site-header', { 'site-header--overlay': overlay }]} data-header>
   <div class="bar wrap">
-    <a href="/" class="brand" aria-label="Dierken Bau und Fliesen – zur Startseite">
+    <a href={withBase('/')} class="brand" aria-label="Dierken Bau und Fliesen – zur Startseite">
       <Logo height={40} />
     </a>
 
@@ -52,7 +53,7 @@ const isActive = (href: string) => path === href || path.startsWith(href);
   <div class="menu on-navy" id="menu" hidden data-menu>
     <nav class="menu-nav wrap" aria-label="Mobile Navigation">
       <ul role="list">
-        <li style="--i:0"><a href="/">Start</a></li>
+        <li style="--i:0"><a href={withBase('/')}>Start</a></li>
         {
           nav.map((item, i) => (
             <li style={`--i:${i + 1}`}>

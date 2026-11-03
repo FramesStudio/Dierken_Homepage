@@ -1,4 +1,5 @@
 ---
+import { withBase } from '../lib/url';
 import Logo from './Logo.astro';
 import { company, hours, nav, routeUrl } from '../data/site';
 const year = new Date().getFullYear();
@@ -46,10 +47,10 @@ const year = new Date().getFullYear();
     <div class="base">
       <nav aria-label="Fußnavigation">
         <ul role="list">
-          <li><a href="/">Start</a></li>
+          <li><a href={withBase('/')}>Start</a></li>
           {nav.map((n) => <li><a href={n.href}>{n.label}</a></li>)}
-          <li><a href="/impressum/">Impressum</a></li>
-          <li><a href="/datenschutz/">Datenschutz</a></li>
+          <li><a href={withBase('/impressum/')}>Impressum</a></li>
+          <li><a href={withBase('/datenschutz/')}>Datenschutz</a></li>
         </ul>
       </nav>
       <p class="small">© {year} {company.name}</p>

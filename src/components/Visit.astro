@@ -1,4 +1,5 @@
 ---
+import { withBase } from '../lib/url';
 /**
  * Ausstellung & Kontakt – ohne Foto. Das D-Zeichen des Logos als räumliches Relief (CSS-3D-Ebenen),
  * das sich beim Erscheinen aufbaut und dem Zeiger folgt.
@@ -42,7 +43,7 @@ const layers = 14;
       <div class="visit-call" data-reveal style="--i:2">
         <a class="visit-phone num" href={company.phoneHref}>{company.phone}</a>
         <div class="visit-actions">
-          <a class="btn" href="/kontakt/">Nachricht schreiben <span class="arrow" aria-hidden="true">→</span></a>
+          <a class="btn" href={withBase('/kontakt/')}>Nachricht schreiben <span class="arrow" aria-hidden="true">→</span></a>
           <a class="link" href={`mailto:${company.email}`}>{company.email}</a>
         </div>
       </div>

@@ -1,4 +1,5 @@
 ---
+import { withBase } from '../lib/url';
 import { Image } from 'astro:assets';
 import Base from '../layouts/Base.astro';
 import PageIntro from '../components/PageIntro.astro';
@@ -71,7 +72,7 @@ const process = [
     <div class="wrap cta-grid">
       <h2 class="h2" id="cta-title">Sprechen wir über <em>Ihr Projekt.</em></h2>
       <div class="cta-actions">
-        <a class="btn" href="/kontakt/">Beratung vereinbaren <span class="arrow" aria-hidden="true">→</span></a>
+        <a class="btn" href={withBase('/kontakt/')}>Beratung vereinbaren <span class="arrow" aria-hidden="true">→</span></a>
         <a class="btn btn--outline" href={company.phoneHref}>Anrufen: {company.phone}</a>
       </div>
     </div>

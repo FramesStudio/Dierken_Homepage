@@ -1,4 +1,5 @@
 ---
+import { withBase } from '../lib/url';
 import Base from '../layouts/Base.astro';
 import { nav } from '../data/site';
 ---
@@ -10,7 +11,7 @@ import { nav } from '../data/site';
       <h1 class="display">Hier fehlt <em>eine Fliese.</em></h1>
       <p class="lead">Die Seite, die Sie suchen, gibt es nicht oder nicht mehr. Vielleicht hilft einer dieser Wege weiter:</p>
       <ul class="nf-links" role="list">
-        <li><a class="link" href="/">Startseite <span class="arrow" aria-hidden="true">→</span></a></li>
+        <li><a class="link" href={withBase('/')}>Startseite <span class="arrow" aria-hidden="true">→</span></a></li>
         {nav.map((n) => <li><a class="link" href={n.href}>{n.label} <span class="arrow" aria-hidden="true">→</span></a></li>)}
       </ul>
     </div>

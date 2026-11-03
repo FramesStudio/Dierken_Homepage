@@ -9,7 +9,8 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "deploy:preview": "sh scripts/deploy-preview.sh"
   },
   "dependencies": {
     "@fontsource-variable/montserrat": "^5.3.0",

@@ -1,4 +1,5 @@
 ---
+import { withBase } from '../lib/url';
 /**
  * Kontaktformular.
  * - Ist PUBLIC_FORM_ENDPOINT gesetzt, wird per POST (JSON) gesendet; Erfolg erscheint nur bei HTTP 2xx.
@@ -58,7 +59,7 @@ const mailto = `mailto:${company.email}`;
 
   <p class="cf-note small">
     Pflichtfelder sind mit * gekennzeichnet. Ihre Angaben verwenden wir ausschließlich zur Bearbeitung Ihrer Anfrage. Mehr dazu in der
-    <a href="/datenschutz/">Datenschutzerklärung</a>.
+    <a href={withBase('/datenschutz/')}>Datenschutzerklärung</a>.
   </p>
   {
     !formEndpoint && (

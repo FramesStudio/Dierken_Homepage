@@ -1,0 +1,399 @@
+---
+import { Image, getImage } from 'astro:assets';
+import Base from '../layouts/Base.astro';
+import PageIntro from '../components/PageIntro.astro';
+import { inspiration, inspirationCredit } from '../data/images';
+
+const cats = ['Bad', 'Küche', 'Wohnen', 'Gewerbe'] as const;
+const items = await Promise.all(
+  inspiration.map(async (it, i) => ({
+    ...it,
+    i,
+    large: await getImage({ src: it.src, width: Math.min(1600, it.src.width), format: 'webp', quality: 82 }),
+  })),
+);
+---
+
+<Base
+  title="Inspiration für Bad, Küche, Wohnen und Gewerbe"
+  description="Ideen für Fliesen in Bad, Küche, Wohnbereich und Gewerbe: Formate, Farben und Oberflächen aus Herstellerkollektionen als Inspiration für Ihr Projekt."
+>
+  <PageIntro
+    label="Inspiration"
+    title="Bilder für den <em>Kopf.</em>"
+    lead="Beispiele aus Herstellerkollektionen zeigen, wie Formate, Farben und Oberflächen wirken können. Welche Kollektionen aktuell verfügbar sind, zeigen wir Ihnen gern in der Ausstellung."
+  />
+
+  <section class="gal" aria-label="Inspirationsgalerie" data-gallery>
+    <div class="wrap">
+      <div class="gal-bar">
+        <div class="gal-filter" role="group" aria-label="Nach Raum filtern">
+          <button type="button" class="chip" aria-pressed="true" data-filter="all">Alle <span class="num">{items.length}</span></button>
+          {
+            cats.map((c) => (
+              <button type="button" class="chip" aria-pressed="false" data-filter={c}>
+                {c} <span class="num">{items.filter((x) => x.category === c).length}</span>
+              </button>
+            ))
+          }
+        </div>
+        <p class="credit gal-credit">{inspirationCredit}</p>
+      </div>
+
+      <p class="sr-only" aria-live="polite" data-gal-status></p>
+
+      <ul class="gal-grid" role="list">
+        {
+          items.map((it) => (
+            <li class="gal-item" data-cat={it.category}>
+              <a
+                class="gal-link"
+                href={it.large.src}
+                data-index={it.i}
+                data-full={it.large.src}
+                data-alt={it.alt}
+                data-cat={it.category}
+              >
+                <span class="frame gal-frame" style={`aspect-ratio:${it.src.width}/${it.src.height}`}>
+                  <Image src={it.src} alt={it.alt} widths={[400, 700, 1000]} sizes="(max-width: 600px) 100vw, (max-width: 1100px) 50vw, 33vw" layout="none" />
+                </span>
+                <span class="gal-cap">
+                  <span>{it.category}</span>
+                  <span class="gal-open" aria-hidden="true">Vergrößern ↗</span>
+                </span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+
+    <dialog class="lb" aria-label="Bildansicht" data-lightbox>
+      <div class="lb-inner">
+        <figure class="lb-fig">
+          <img class="lb-img" alt="" data-lb-img />
+          <figcaption class="lb-cap">
+            <span data-lb-cat></span>
+            <span data-lb-alt></span>
+            <span class="lb-note">Herstellerbild · kein Dierken-Projekt</span>
+          </figcaption>
+        </figure>
+        <button type="button" class="lb-btn lb-prev" data-lb-prev aria-label="Vorheriges Bild">←</button>
+        <button type="button" class="lb-btn lb-next" data-lb-next aria-label="Nächstes Bild">→</button>
+        <button type="button" class="lb-btn lb-close" data-lb-close aria-label="Schließen">✕</button>
+        <p class="lb-count num" data-lb-count></p>
+      </div>
+    </dialog>
+  </section>
+
+  <section class="section">
+    <div class="wrap insp-cta">
+      <h2 class="h2">Etwas <em>gefunden?</em></h2>
+      <p class="lead">Bringen Sie Ihre Favoriten mit in die Ausstellung – wir zeigen Ihnen passende Fliesen aus dem aktuellen Sortiment.</p>
+      <a class="btn" href="/kontakt/">Beratung vereinbaren <span class="arrow" aria-hidden="true">→</span></a>
+    </div>
+  </section>
+</Base>
+
+<script>
+  function init() {
+    const root = document.querySelector<HTMLElement>('[data-gallery]');
+    if (!root) return;
+    const chips = [...root.querySelectorAll<HTMLButtonElement>('[data-filter]')];
+    const items = [...root.querySelectorAll<HTMLElement>('.gal-item')];
+    const links = [...root.querySelectorAll<HTMLAnchorElement>('.gal-link')];
+    const status = root.querySelector<HTMLElement>('[data-gal-status]')!;
+    const dlg = root.querySelector<HTMLDialogElement>('[data-lightbox]')!;
+    const img = dlg.querySelector<HTMLImageElement>('[data-lb-img]')!;
+    const cat = dlg.querySelector<HTMLElement>('[data-lb-cat]')!;
+    const alt = dlg.querySelector<HTMLElement>('[data-lb-alt]')!;
+    const count = dlg.querySelector<HTMLElement>('[data-lb-count]')!;
+    let visible = links;
+    let idx = 0;
+
+    // Filter
+    chips.forEach((chip) =>
+      chip.addEventListener('click', () => {
+        const f = chip.dataset.filter!;
+        chips.forEach((c) => c.setAttribute('aria-pressed', String(c === chip)));
+        items.forEach((it) => {
+          const show = f === 'all' || it.dataset.cat === f;
+          it.hidden = !show;
+          if (show) it.classList.remove('is-in'), void it.offsetWidth, it.classList.add('is-in');
+        });
+        visible = links.filter((l) => !l.closest<HTMLElement>('.gal-item')!.hidden);
+        status.textContent = `${visible.length} Bilder${f === 'all' ? '' : ` in der Kategorie ${f}`}`;
+      }),
+    );
+
+    // Lightbox
+    const show = (i: number) => {
+      idx = (i + visible.length) % visible.length;
+      const l = visible[idx];
+      img.classList.remove('is-loaded');
+      img.onload = () => img.classList.add('is-loaded');
+      img.src = l.dataset.full!;
+      img.alt = l.dataset.alt!;
+      cat.textContent = l.dataset.cat!;
+      alt.textContent = l.dataset.alt!;
+      count.textContent = `${idx + 1} / ${visible.length}`;
+    };
+    links.forEach((l) =>
+      l.addEventListener('click', (e) => {
+        if (typeof dlg.showModal !== 'function') return; // Fallback: Link öffnet Bild
+        e.preventDefault();
+        show(visible.indexOf(l));
+        dlg.showModal();
+        document.body.style.overflow = 'hidden';
+      }),
+    );
+    dlg.addEventListener('close', () => {
+      document.body.style.overflow = '';
+      // nach der nativen Fokus-Wiederherstellung des Dialogs auf das zuletzt gezeigte Bild setzen
+      setTimeout(() => visible[idx]?.focus(), 0);
+    });
+    dlg.querySelector('[data-lb-prev]')!.addEventListener('click', () => show(idx - 1));
+    dlg.querySelector('[data-lb-next]')!.addEventListener('click', () => show(idx + 1));
+    dlg.querySelector('[data-lb-close]')!.addEventListener('click', () => dlg.close());
+    dlg.addEventListener('click', (e) => {
+      if (e.target === dlg) dlg.close();
+    });
+    dlg.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') show(idx - 1);
+      if (e.key === 'ArrowRight') show(idx + 1);
+    });
+  }
+  try {
+    init();
+  } catch (e) {
+    console.warn('[galerie]', e);
+  }
+</script>
+
+<style>
+  .gal-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem 2rem;
+    padding-block: 1.25rem;
+    border-top: 1px solid var(--line-strong);
+    border-bottom: 1px solid var(--line);
+    margin-bottom: var(--space-m);
+  }
+  .gal-credit {
+    max-width: 38em;
+  }
+  .gal-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  :global(html.no-js) .gal-filter {
+    display: none;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    min-height: 44px;
+    padding: 0 1.1rem;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    background: transparent;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--navy);
+    cursor: pointer;
+    transition:
+      background-color var(--t-fast) var(--ease),
+      color var(--t-fast) var(--ease);
+  }
+  .chip .num {
+    font-size: 0.75rem;
+    opacity: 0.6;
+  }
+  .chip:hover {
+    background: rgb(11 31 88 / 0.06);
+  }
+  .chip[aria-pressed='true'] {
+    background: var(--navy);
+    color: var(--paper);
+    border-color: var(--navy);
+  }
+  .gal-grid {
+    columns: 3 300px;
+    column-gap: var(--gap);
+  }
+  .gal-item {
+    break-inside: avoid;
+    margin-bottom: var(--gap);
+  }
+  .gal-item[hidden] {
+    display: none;
+  }
+  :global(html.motion) .gal-item.is-in {
+    animation: gal-in 0.7s var(--ease) both;
+  }
+  @keyframes gal-in {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+  }
+  .gal-link {
+    display: grid;
+    gap: 0.6rem;
+    text-decoration: none;
+  }
+  .gal-frame {
+    display: block;
+  }
+  .gal-frame :global(img) {
+    transition: transform 1s var(--ease);
+  }
+  .gal-link:hover .gal-frame :global(img),
+  .gal-link:focus-visible .gal-frame :global(img) {
+    transform: scale(1.04);
+  }
+  .gal-cap {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--fs-label);
+    font-weight: 650;
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    color: var(--navy);
+  }
+  .gal-open {
+    opacity: 0;
+    transform: translateX(-6px);
+    transition:
+      opacity var(--t-fast) var(--ease),
+      transform var(--t-mid) var(--ease);
+  }
+  .gal-link:hover .gal-open,
+  .gal-link:focus-visible .gal-open {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Lightbox */
+  .lb {
+    width: 100vw;
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: rgb(7 19 57 / 0.96);
+    color: var(--paper);
+  }
+  .lb::backdrop {
+    background: rgb(7 19 57 / 0.6);
+  }
+  .lb-inner {
+    position: relative;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    padding: clamp(64px, 8vh, 96px) clamp(16px, 7vw, 120px);
+  }
+  .lb-fig {
+    display: grid;
+    gap: 1rem;
+    justify-items: center;
+    max-height: 100%;
+  }
+  .lb-img {
+    max-width: 100%;
+    max-height: calc(100dvh - 220px);
+    width: auto;
+    height: auto;
+    opacity: 0;
+    transform: scale(0.985);
+    transition:
+      opacity 0.5s var(--ease),
+      transform 0.7s var(--ease);
+  }
+  .lb-img.is-loaded {
+    opacity: 1;
+    transform: none;
+  }
+  .lb-cap {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.4rem 1.2rem;
+    font-size: 0.85rem;
+    color: var(--on-navy-soft);
+    text-align: center;
+  }
+  .lb-cap span:first-child {
+    color: var(--mist);
+    font-weight: 650;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+  }
+  .lb-note {
+    font-size: 0.75rem;
+  }
+  .lb-btn {
+    position: absolute;
+    width: 52px;
+    height: 52px;
+    border: 1px solid var(--line-on-navy);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--paper);
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background-color var(--t-fast) var(--ease);
+  }
+  .lb-btn:hover {
+    background: rgb(244 242 238 / 0.12);
+  }
+  .lb-btn:focus-visible {
+    outline-color: var(--mist);
+  }
+  .lb-prev {
+    left: clamp(8px, 2vw, 32px);
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .lb-next {
+    right: clamp(8px, 2vw, 32px);
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .lb-close {
+    right: clamp(8px, 2vw, 32px);
+    top: clamp(8px, 2vw, 32px);
+  }
+  .lb-count {
+    position: absolute;
+    left: clamp(16px, 2vw, 32px);
+    top: clamp(20px, 2.6vw, 44px);
+    font-size: 0.8rem;
+    color: var(--on-navy-soft);
+  }
+  @media (max-width: 700px) {
+    .lb-prev,
+    .lb-next {
+      top: auto;
+      bottom: 16px;
+      transform: none;
+    }
+  }
+
+  .insp-cta {
+    display: grid;
+    gap: 1.5rem;
+    justify-items: start;
+    padding-top: var(--space-m);
+    border-top: 1px solid var(--line-strong);
+  }
+</style>

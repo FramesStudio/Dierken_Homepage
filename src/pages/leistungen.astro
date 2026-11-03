@@ -1,0 +1,179 @@
+---
+import { Image } from 'astro:assets';
+import Base from '../layouts/Base.astro';
+import PageIntro from '../components/PageIntro.astro';
+import Services from '../components/Services.astro';
+import { serviceGroups, company } from '../data/site';
+import { own } from '../data/images';
+
+const process = [
+  { n: '01', t: 'Ausstellung & Beratung', d: 'Sie sehen Fliesen in echten Formaten und sprechen mit uns über Gestaltung und Technik – in der Ausstellung oder bei Ihnen vor Ort.' },
+  { n: '02', t: 'Aufmaß vor Ort', d: 'Wir messen Flächen und Anschlüsse auf und bestimmen die passenden Verlegewerkstoffe.' },
+  { n: '03', t: 'Transparentes Angebot', d: 'Auf Basis des Aufmaßes erhalten Sie ein nachvollziehbares Angebot zu fairen Konditionen.' },
+  { n: '04', t: 'Fachgerechte Verlegung', d: 'Unsere ausgebildeten Fliesenleger kommen zu Ihnen und verlegen Ihre Wunschfliesen fachkundig.' },
+];
+---
+
+<Base
+  title="Leistungen"
+  description="Beratung, Verkauf und Verlegung von Fliesen, Platten und Naturstein: Badsanierung, barrierefreie Bäder, Balkone, Terrassen, Treppen und mehr – aus einer Hand in Lohne."
+>
+  <PageIntro
+    label="Leistungen"
+    title="Vom Aufmaß bis zur <em>letzten Fuge.</em>"
+    lead="Ob private Bauherren oder Architekten, Wohnbereich, Bad, Wellness oder Gewerbe: Wir beraten, liefern und verlegen – alles aus einer Hand."
+  />
+
+  <section class="section catalog" aria-labelledby="cat-title">
+    <div class="wrap cat-grid">
+      <div class="cat-head">
+        <h2 class="h2" id="cat-title">Was wir <em>für Sie tun.</em></h2>
+        <figure class="cat-img frame marks" data-tiles>
+          <Image src={own.handwerk.zuschnittPortrait.src} alt={own.handwerk.zuschnittPortrait.alt} widths={[540, 1080]} sizes="(max-width: 900px) 100vw, 36vw" layout="none" />
+        </figure>
+      </div>
+      <div class="cat-groups">
+        {
+          serviceGroups.map((g, gi) => (
+            <div class="cat-group" data-reveal style={`--i:${gi % 2}`}>
+              <h3 class="label label--plain">{g.title}</h3>
+              <ul role="list">
+                {g.items.map((it) => <li>{it}</li>)}
+              </ul>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="section process on-navy" aria-labelledby="proc-title">
+    <div class="wrap">
+      <p class="label">Ablauf</p>
+      <h2 class="h2" id="proc-title">So arbeiten wir <em>zusammen.</em></h2>
+      <ol class="proc" role="list">
+        {
+          process.map((p, i) => (
+            <li class="proc-step" data-reveal style={`--i:${i}`}>
+              <span class="proc-n num">{p.n}</span>
+              <h3 class="h3">{p.t}</h3>
+              <p>{p.d}</p>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+  </section>
+
+  <Services teaser={false} />
+
+  <section class="section cta-band" aria-labelledby="cta-title">
+    <div class="wrap cta-grid">
+      <h2 class="h2" id="cta-title">Sprechen wir über <em>Ihr Projekt.</em></h2>
+      <div class="cta-actions">
+        <a class="btn" href="/kontakt/">Beratung vereinbaren <span class="arrow" aria-hidden="true">→</span></a>
+        <a class="btn btn--outline" href={company.phoneHref}>Anrufen: {company.phone}</a>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .catalog {
+    padding-top: var(--space-m);
+  }
+  .cat-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--space-m) var(--gap);
+  }
+  .cat-head {
+    grid-column: 1 / span 5;
+    display: grid;
+    gap: var(--space-m);
+    align-content: start;
+    align-self: start;
+    position: sticky;
+    top: calc(var(--header-h) + 2rem);
+  }
+  .cat-img {
+    aspect-ratio: 1080 / 730;
+  }
+  .cat-groups {
+    grid-column: 7 / -1;
+    display: grid;
+    gap: var(--space-m);
+  }
+  .cat-group {
+    display: grid;
+    gap: 0.9rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line-strong);
+  }
+  .cat-group ul {
+    display: grid;
+  }
+  .cat-group li {
+    padding: 0.7rem 0;
+    border-bottom: 1px solid var(--line);
+    font-family: var(--font-display);
+    font-size: clamp(1.15rem, 1rem + 0.5vw, 1.45rem);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--navy);
+  }
+  .proc {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-m) var(--gap);
+    margin-top: var(--space-l);
+  }
+  .proc-step {
+    display: grid;
+    gap: 0.8rem;
+    align-content: start;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--line-on-navy);
+    color: var(--on-navy-soft);
+  }
+  .proc-n {
+    font-family: var(--font-display);
+    font-size: 3.4rem;
+    font-weight: 800;
+    font-style: italic;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    color: var(--mist);
+  }
+  .cta-band {
+    padding-top: var(--space-l);
+  }
+  .cta-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: end;
+    gap: 2rem;
+    padding-top: var(--space-m);
+    border-top: 1px solid var(--line-strong);
+  }
+  .cta-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  @media (max-width: 900px) {
+    .cat-head,
+    .cat-groups {
+      grid-column: 1 / -1;
+    }
+    .proc {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  @media (max-width: 560px) {
+    .proc {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

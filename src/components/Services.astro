@@ -1,0 +1,429 @@
+---
+/**
+ * Leistungen – Schwenkrahmen-Display zum Durchblättern (src/three/display.ts).
+ * Jede Doppelseite eine Leistung; auf der letzten werden die Fliesen einzeln gesetzt.
+ */
+interface Props {
+  teaser?: boolean;
+}
+const { teaser = true } = Astro.props;
+
+const steps = [
+  { n: '01', a: 'Aus', b: 'stellung', claim: 'Fliesen sehen, fühlen, vergleichen.', text: 'In unserer Ausstellung in Lohne erleben Sie Wand- und Bodenfliesen in echten Formaten und testen Raumwirkung und Kombinationen – bevor Sie sich entscheiden.', pages: 'Calacatta 40 × 90 · Zellige 10 × 10' },
+  { n: '02', a: 'Be', b: 'ratung', claim: 'Persönlich und technisch fundiert.', text: 'Ob private Bauherren oder Architekten: Wir beraten zu gestalterischen und technischen Möglichkeiten – in der Ausstellung und bei Ihnen vor Ort.', pages: 'Travertin 80 × 180 · Rillenrelief 20 × 60' },
+  { n: '03', a: 'Ver', b: 'kauf', claim: 'Großes Sortiment namhafter Hersteller.', text: 'Vielfalt, Individualität und Flexibilität für Wohnbereich, Bad, Wellness oder Gewerbe. Fliesen und Naturstein bekommen Sie bei uns direkt.', pages: 'Terrazzo 40 × 60 · Holzoptik 40 × 15' },
+  { n: '04', a: 'Ver', b: 'legung', claim: 'Fachgerecht verlegt, transparent angeboten.', text: 'Nach dem Aufmaß erhalten Sie ein transparentes Angebot zu fairen Konditionen. Unsere Fliesenleger verlegen Ihre Wunschfliesen bei Ihnen vor Ort.', pages: 'Fugenlos · Glasur 10 × 10, Fliese für Fliese' },
+];
+---
+
+<section class="svc" id="leistungen" aria-labelledby="svc-title" data-services>
+  <div class="svc-track" data-svc-track>
+    <div class="svc-stage" data-svc-stage>
+      <canvas class="svc-canvas" data-svc-canvas aria-hidden="true"></canvas>
+      <div class="svc-shade" aria-hidden="true"></div>
+
+      <div class="svc-ui wrap">
+        <p class="label">Leistungen · Alles aus einer Hand</p>
+
+        <div class="svc-items" aria-live="polite">
+          <div class="svc-item svc-intro is-active" data-svc-item="0">
+            <h2 class="svc-big" id="svc-title">
+              <span class="w">{[...'Alles aus'].map((c, k) => <span class="ch" style={`--k:${k}`}>{c === ' ' ? ' ' : c}</span>)}</span>
+              <em class="w">{[...'einer Hand.'].map((c, k) => <span class="ch" style={`--k:${k + 9}`}>{c === ' ' ? ' ' : c}</span>)}</em>
+            </h2>
+            <p class="svc-lead">Blättern Sie durch unser Haus: vier Schritte, ein Ansprechpartner – von der ersten Idee bis zur fertigen Fläche.</p>
+            <p class="svc-hint"><span aria-hidden="true"></span> Scrollen zum Umblättern</p>
+          </div>
+          {
+            steps.map((s, i) => (
+              <div class="svc-item" data-svc-item={i + 1}>
+                <p class="svc-n num" aria-hidden="true">{s.n}</p>
+                <h3 class="svc-big">
+                  <span class="w">{[...s.a].map((c, k) => <span class="ch" style={`--k:${k}`}>{c}</span>)}<span class="soft">{[...s.b].map((c, k) => <span class="ch" style={`--k:${k + s.a.length}`}>{c}</span>)}</span></span>
+                </h3>
+                <p class="svc-claim">{s.claim}</p>
+                <p class="svc-text">{s.text}</p>
+                <p class="svc-pages">{s.pages}</p>
+              </div>
+            ))
+          }
+        </div>
+
+        <div class="svc-foot">
+          <ol class="svc-dots" role="list" aria-hidden="true">
+            {steps.map((s, i) => <li data-svc-dot={i + 1}><span class="num">{s.n}</span></li>)}
+          </ol>
+          {teaser && <a class="link" href="/leistungen/">Alle Leistungen <span class="arrow" aria-hidden="true">→</span></a>}
+        </div>
+      </div>
+      <p class="svc-credit" aria-hidden="true">Schwenkrahmen wie in unserer Ausstellung · 3D, im Code erzeugt</p>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { webglAvailable } from '../three/support';
+
+  const root = document.querySelector<HTMLElement>('[data-services]');
+  const track = root?.querySelector<HTMLElement>('[data-svc-track]');
+  const stage = root?.querySelector<HTMLElement>('[data-svc-stage]');
+  const canvas = root?.querySelector<HTMLCanvasElement>('[data-svc-canvas]');
+  if (root && track && stage && canvas) {
+    const motion = document.documentElement.classList.contains('motion');
+    const items = [...root.querySelectorAll<HTMLElement>('[data-svc-item]')];
+    const dots = [...root.querySelectorAll<HTMLElement>('[data-svc-dot]')];
+    const P_MAX = 4.3;
+    let active = 0;
+    let disp: { setProgress: (p: number) => void } | null = null;
+
+    const progress = () => {
+      const len = track.offsetHeight - stage.offsetHeight;
+      return len > 0 ? Math.min(1, Math.max(0, -track.getBoundingClientRect().top / len)) * P_MAX : 0;
+    };
+    const activate = (i: number) => {
+      if (i === active) return;
+      const prev = items[active];
+      prev.classList.remove('is-active');
+      prev.classList.add('was-active');
+      setTimeout(() => prev.classList.remove('was-active'), 700);
+      active = i;
+      items[i].classList.add('is-active');
+      dots.forEach((d, k) => d.classList.toggle('is-on', k + 1 <= i));
+    };
+    if (motion) {
+      let ticking = false;
+      const onScroll = () => {
+        ticking = false;
+        const p = progress();
+        disp?.setProgress(p);
+        let s = 0;
+        for (let k = 0; k < 4; k++) if (p >= k + 0.45) s = k + 1;
+        activate(s);
+      };
+      addEventListener('scroll', () => !ticking && (ticking = true) && requestAnimationFrame(onScroll), { passive: true });
+      onScroll();
+    }
+
+    if (webglAvailable()) {
+      root.classList.add('has-gl');
+      new IntersectionObserver(
+        ([e], io) => {
+          if (!e.isIntersecting) return;
+          io.disconnect();
+          const go = () =>
+            import('../three/display')
+              .then(({ initDisplay }) => {
+                disp = initDisplay(canvas, { reduced: !motion, observe: stage });
+                disp.setProgress(progress());
+              })
+              .catch((err) => {
+                root.classList.remove('has-gl');
+                console.warn('[leistungen] WebGL deaktiviert', err);
+              });
+          'requestIdleCallback' in window ? requestIdleCallback(go, { timeout: 400 }) : setTimeout(go, 50);
+        },
+        { rootMargin: '45% 0px' },
+      ).observe(root);
+    }
+  }
+</script>
+
+<style>
+  .svc {
+    position: relative;
+    background: #efe8dd;
+    color: var(--navy);
+  }
+  :global(html.motion) .svc.has-gl .svc-track {
+    height: 520svh;
+  }
+  .svc-stage {
+    position: relative;
+    height: 100svh;
+    min-height: 640px;
+    overflow: hidden;
+  }
+  :global(html.motion) .svc.has-gl .svc-stage {
+    position: sticky;
+    top: 0;
+  }
+  .svc-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .svc-shade {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(90deg, rgb(239 232 221 / 0.92) 0%, rgb(239 232 221 / 0.6) 28%, transparent 46%);
+  }
+  .svc:not(.has-gl) :is(.svc-canvas, .svc-shade, .svc-credit) {
+    display: none;
+  }
+
+  .svc-ui {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    padding-top: calc(var(--header-h) + 2.5rem);
+    padding-bottom: 2.6rem;
+    pointer-events: none;
+  }
+  .svc-ui a {
+    pointer-events: auto;
+  }
+  .svc-items {
+    position: relative;
+    align-self: center;
+    width: min(44vw, 620px);
+    min-height: 26rem;
+  }
+  .svc-item {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 100%;
+    transform: translateY(-50%);
+    visibility: hidden;
+  }
+  .svc-item.is-active,
+  .svc-item.was-active {
+    visibility: visible;
+  }
+  .svc-n {
+    font-size: clamp(4rem, 2rem + 6vw, 9rem);
+    font-weight: 900;
+    letter-spacing: -0.06em;
+    line-height: 0.8;
+    color: rgb(29 60 143 / 0.16);
+    margin-bottom: 0.2rem;
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  .svc-big {
+    font-size: clamp(3rem, 1.2rem + 5.6vw, 8rem);
+    font-weight: 900;
+    letter-spacing: -0.055em;
+    line-height: 0.88;
+    color: var(--navy);
+    margin-bottom: 1.4rem;
+  }
+  .svc-big .w {
+    display: block;
+    overflow: hidden;
+    padding-bottom: 0.1em;
+    margin-bottom: -0.1em;
+  }
+  .svc-big em,
+  .svc-big .soft {
+    font-style: italic;
+    color: var(--glaze-cobalt);
+  }
+  .ch {
+    display: inline-block;
+    transform: translate3d(0, 110%, 0) rotate(8deg);
+    transform-origin: 0 100%;
+  }
+  .svc-item.is-active .ch {
+    transform: none;
+    transition: transform 0.9s var(--ease);
+    transition-delay: calc(0.1s + var(--k) * 26ms);
+  }
+  .svc-item.was-active .ch {
+    transform: translate3d(0, -110%, 0);
+    transition: transform 0.5s var(--ease-in-out);
+    transition-delay: calc(var(--k) * 12ms);
+  }
+  .svc-item :is(.svc-claim, .svc-text, .svc-pages, .svc-lead, .svc-hint) {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  .svc-item.is-active :is(.svc-claim, .svc-text, .svc-pages, .svc-lead, .svc-hint, .svc-n) {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 0.7s var(--ease) 0.4s,
+      transform 0.8s var(--ease) 0.4s;
+  }
+  .svc-item.is-active .svc-n {
+    transition-delay: 0.05s;
+  }
+  .svc-item.was-active :is(.svc-claim, .svc-text, .svc-pages, .svc-lead, .svc-hint, .svc-n) {
+    opacity: 0;
+    transition: opacity 0.25s var(--ease);
+  }
+  .svc-claim {
+    font-size: 1.3rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.5rem;
+  }
+  .svc-text,
+  .svc-lead {
+    max-width: 30em;
+    color: var(--ink-soft);
+  }
+  .svc-lead {
+    font-size: var(--fs-lead);
+  }
+  .svc-pages {
+    margin-top: 1.4rem;
+    font-size: var(--fs-label);
+    font-weight: 700;
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    color: var(--glaze-cobalt);
+  }
+  .svc-hint {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    margin-top: 1.8rem;
+    font-size: var(--fs-label);
+    font-weight: 700;
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+  }
+  .svc-hint span {
+    width: 14px;
+    height: 20px;
+    border: 1.5px solid currentColor;
+    border-radius: 2px;
+    transform-origin: left;
+  }
+  :global(html.motion) .svc-hint span {
+    animation: page 2.4s var(--ease-in-out) infinite;
+  }
+  @keyframes page {
+    0%,
+    40% {
+      transform: perspective(60px) rotateY(0);
+    }
+    70%,
+    100% {
+      transform: perspective(60px) rotateY(-170deg);
+    }
+  }
+
+  .svc-foot {
+    display: flex;
+    align-items: center;
+    gap: 2.5rem;
+  }
+  .svc-dots {
+    display: flex;
+    gap: 6px;
+  }
+  .svc-dots li {
+    position: relative;
+    width: 56px;
+    padding-top: 10px;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: rgb(11 31 88 / 0.4);
+    transition: color 0.5s var(--ease);
+  }
+  .svc-dots li::before,
+  .svc-dots li::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 2px;
+    background: rgb(11 31 88 / 0.14);
+  }
+  .svc-dots li::after {
+    background: var(--navy);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.7s var(--ease);
+  }
+  .svc-dots li.is-on {
+    color: var(--navy);
+  }
+  .svc-dots li.is-on::after {
+    transform: scaleX(1);
+  }
+  .svc-credit {
+    position: absolute;
+    right: var(--pad);
+    bottom: 2.9rem;
+    z-index: 2;
+    font-size: 0.64rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgb(11 31 88 / 0.55);
+  }
+
+  /* Ohne WebGL / ohne Bewegung: alle Leistungen als Liste */
+  :global(html:not(.motion)) .svc-items,
+  .svc:not(.has-gl) .svc-items {
+    width: auto;
+    min-height: 0;
+    display: grid;
+    gap: var(--space-m);
+  }
+  :global(html:not(.motion)) .svc-item,
+  .svc:not(.has-gl) .svc-item {
+    position: static;
+    transform: none;
+    visibility: visible;
+  }
+  :global(html:not(.motion)) .svc :is(.ch, .svc-claim, .svc-text, .svc-pages, .svc-lead, .svc-hint, .svc-n),
+  .svc:not(.has-gl) :is(.ch, .svc-claim, .svc-text, .svc-pages, .svc-lead, .svc-hint, .svc-n) {
+    opacity: 1;
+    transform: none;
+  }
+  :global(html:not(.motion)) .svc-stage,
+  .svc:not(.has-gl) .svc-stage {
+    height: auto;
+  }
+  :global(html:not(.motion)) .svc :is(.svc-canvas, .svc-shade),
+  :global(html:not(.motion)) .svc-hint,
+  :global(html:not(.motion)) .svc-dots {
+    display: none;
+  }
+
+  @media (max-width: 900px) {
+    .svc-shade {
+      background: linear-gradient(0deg, rgb(239 232 221 / 0.97) 0%, rgb(239 232 221 / 0.75) 40%, transparent 62%);
+    }
+    .svc-items {
+      align-self: end;
+      width: 100%;
+      min-height: 17rem;
+    }
+    .svc-item {
+      top: auto;
+      bottom: 0;
+      transform: none;
+    }
+    .svc-n {
+      font-size: 3.4rem;
+    }
+    .svc-big {
+      font-size: clamp(2.6rem, 12vw, 3.8rem);
+      margin-bottom: 0.8rem;
+    }
+    .svc-text {
+      display: none;
+    }
+    .svc-ui {
+      padding-top: calc(var(--header-h) + 1.2rem);
+      padding-bottom: 1.4rem;
+    }
+    .svc-dots li {
+      width: 36px;
+    }
+    .svc-credit {
+      display: none;
+    }
+  }
+</style>

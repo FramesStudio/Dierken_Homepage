@@ -1,0 +1,32 @@
+---
+/**
+ * Logo als Vektor (public/brand/dierken-logo.svg), nachgebaut aus den Markenmotiven:
+ * Fläche, D-Zeichen und Trenner geometrisch, Schriftzug aus dem Original nachgezeichnet.
+ * Proportion 340 × 64.
+ */
+interface Props {
+  height?: number;
+  class?: string;
+  eager?: boolean;
+}
+const { height = 34, class: cls, eager = true } = Astro.props;
+const width = Math.round((340 / 64) * height * 100) / 100;
+---
+
+<img
+  class:list={['logo', cls]}
+  src="/brand/dierken-logo.svg"
+  width={width}
+  height={height}
+  alt="Dierken"
+  decoding="async"
+  loading={eager ? 'eager' : 'lazy'}
+  style={`width:${width}px;height:${height}px`}
+/>
+
+<style>
+  .logo {
+    display: block;
+    max-width: none;
+  }
+</style>

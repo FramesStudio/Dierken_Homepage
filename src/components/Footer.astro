@@ -1,0 +1,148 @@
+---
+import Logo from './Logo.astro';
+import { company, hours, nav, routeUrl } from '../data/site';
+const year = new Date().getFullYear();
+---
+
+<footer class="footer on-navy-deep">
+  <div class="wrap">
+    <p class="claim" aria-hidden="true">Fliese für Fliese.</p>
+
+    <div class="cols">
+      <div class="col col--brand">
+        <Logo height={60} eager={false} />
+        <p class="small muted-n">Familienbetrieb seit {company.founded}.<br />Ausstellung, Beratung, Verkauf und Verlegung aus einer Hand.</p>
+      </div>
+
+      <div class="col">
+        <h2 class="label label--plain">Besuchen</h2>
+        <address>
+          {company.name}<br />
+          {company.street}<br />
+          {company.zip} {company.city}
+        </address>
+        <a class="link" href={routeUrl} rel="noopener" target="_blank">Route planen<span class="sr-only"> (öffnet Google Maps in neuem Tab)</span> <span class="arrow" aria-hidden="true">↗</span></a>
+      </div>
+
+      <div class="col">
+        <h2 class="label label--plain">Ausstellung</h2>
+        <p>
+          {hours.weekdayLabel}<br />
+          <span class="num">9:00 – 12:00</span> und <span class="num">14:00 – 17:30</span> Uhr<br />
+          {hours.saturday}
+        </p>
+      </div>
+
+      <div class="col">
+        <h2 class="label label--plain">Kontakt</h2>
+        <p>
+          <a class="plain num" href={company.phoneHref}>Telefon {company.phone}</a><br />
+          <a class="plain" href={`mailto:${company.email}`}>{company.email}</a>
+        </p>
+        <a class="link" href={company.facebook} rel="noopener" target="_blank">Facebook<span class="sr-only"> (externer Link, neuer Tab)</span> <span class="arrow" aria-hidden="true">↗</span></a>
+      </div>
+    </div>
+
+    <div class="base">
+      <nav aria-label="Fußnavigation">
+        <ul role="list">
+          <li><a href="/">Start</a></li>
+          {nav.map((n) => <li><a href={n.href}>{n.label}</a></li>)}
+          <li><a href="/impressum/">Impressum</a></li>
+          <li><a href="/datenschutz/">Datenschutz</a></li>
+        </ul>
+      </nav>
+      <p class="small">© {year} {company.name}</p>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    padding-block: var(--space-l) 2rem;
+    overflow: hidden;
+  }
+  .claim {
+    font-family: var(--font-display);
+    font-size: clamp(2.8rem, 0.8rem + 8.6vw, 10rem);
+    font-weight: 800;
+    font-style: italic;
+    letter-spacing: -0.04em;
+    line-height: 0.9;
+    color: rgb(188 212 230 / 0.55);
+    margin-bottom: var(--space-l);
+    white-space: nowrap;
+  }
+  .cols {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr 1fr;
+    gap: var(--space-m) var(--gap);
+    padding-bottom: var(--space-l);
+  }
+  .col {
+    display: grid;
+    align-content: start;
+    gap: 0.9rem;
+    color: var(--on-navy-soft);
+    font-size: 0.95rem;
+  }
+  .col address {
+    font-style: normal;
+  }
+  .col .label {
+    color: var(--mist);
+  }
+  .col--brand {
+    gap: 1.4rem;
+  }
+  .muted-n {
+    max-width: 22em;
+  }
+  .plain {
+    text-decoration: none;
+    display: inline-block;
+    padding-block: 0.3rem;
+  }
+  .plain:hover {
+    color: var(--paper);
+    text-decoration: underline;
+  }
+  .base {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 1rem 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--line-on-navy);
+    color: var(--on-navy-soft);
+  }
+  .base ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1.5rem;
+  }
+  .base a {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    font-size: 0.85rem;
+    text-decoration: none;
+  }
+  .base a:hover {
+    color: var(--paper);
+    text-decoration: underline;
+  }
+  .base p {
+    align-self: center;
+  }
+  @media (max-width: 1000px) {
+    .cols {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  @media (max-width: 560px) {
+    .cols {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

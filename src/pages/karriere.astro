@@ -1,0 +1,122 @@
+---
+import { Image } from 'astro:assets';
+import Base from '../layouts/Base.astro';
+import PageIntro from '../components/PageIntro.astro';
+import { own } from '../data/images';
+import { company } from '../data/site';
+const h = own.handwerk;
+const subject = encodeURIComponent('Initiativbewerbung');
+---
+
+<Base
+  title="Karriere"
+  description="Arbeiten bei Dierken Bau und Fliesen in Lohne: Initiativbewerbungen als Fliesen-, Platten- und Mosaikleger/-in sind jederzeit willkommen."
+>
+  <PageIntro
+    label="Karriere"
+    title="Verstärkung <em>gesucht?</em>"
+    lead="Sie möchten sich beruflich verändern, suchen eine neue Herausforderung und haben genauso viel Freude an der Arbeit wie wir? Dann lernen Sie uns kennen."
+  />
+
+  <section class="career">
+    <div class="wrap career-grid">
+      <figure class="c-img frame marks" data-tiles>
+        <Image src={h.fliesenlegerFenster.src} alt={h.fliesenlegerFenster.alt} widths={[600, 780]} sizes="(max-width: 900px) 100vw, 58vw" layout="none" />
+      </figure>
+
+      <div class="c-status">
+        <h2 class="label label--plain">Aktuelle Stellen</h2>
+        <div class="c-card">
+          <p class="h3">Ausbildung zum Fliesen-, Platten- und Mosaikleger (m/w/d)</p>
+          <p class="muted">Zurzeit ist keine Ausbildungsstelle zu vergeben.</p>
+        </div>
+        <p>
+          Gerade keine passende Position dabei? Schauen Sie gern wieder vorbei – oder schicken Sie uns Ihre
+          <strong>Initiativbewerbung</strong>.
+        </p>
+      </div>
+
+      <div class="c-apply on-navy">
+        <h2 class="h3">So bewerben Sie sich</h2>
+        <p>Senden Sie Anschreiben, Lebenslauf und Zeugnisse per E-Mail oder per Post an:</p>
+        <address>
+          {company.name}<br />
+          {company.street}<br />
+          {company.zip} {company.city}
+        </address>
+        <div class="c-actions">
+          <a class="btn btn--light" href={`mailto:${company.email}?subject=${subject}`}>Bewerbung per E-Mail <span class="arrow" aria-hidden="true">→</span></a>
+          <a class="link" href={company.phoneHref}>Fragen vorab: {company.phone}</a>
+        </div>
+      </div>
+
+      <figure class="c-img2 frame" data-tiles>
+        <Image src={h.kelleEimer.src} alt={h.kelleEimer.alt} widths={[400, 780]} sizes="(max-width: 900px) 100vw, 33vw" layout="none" />
+      </figure>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .career {
+    padding-bottom: var(--space-xl);
+  }
+  .career-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--space-m) var(--gap);
+  }
+  .c-img {
+    grid-column: 1 / span 7;
+    aspect-ratio: 780 / 235;
+  }
+  .c-status {
+    grid-column: 9 / -1;
+    grid-row: 1 / span 2;
+    display: grid;
+    gap: 1.25rem;
+    align-content: start;
+  }
+  .c-card {
+    display: grid;
+    gap: 0.5rem;
+    padding: 1.25rem 0;
+    border-top: 1px solid var(--line-strong);
+    border-bottom: 1px solid var(--line-strong);
+  }
+  .c-apply {
+    grid-column: 1 / span 7;
+    display: grid;
+    gap: 1rem;
+    padding: clamp(1.75rem, 4vw, 3.5rem);
+    color: var(--on-navy-soft);
+  }
+  .c-apply address {
+    font-style: normal;
+    color: var(--paper);
+  }
+  .c-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem 1.75rem;
+    margin-top: 0.5rem;
+  }
+  .c-img2 {
+    grid-column: 9 / -1;
+    aspect-ratio: 780 / 625;
+    align-self: end;
+  }
+  @media (max-width: 900px) {
+    .c-img,
+    .c-status,
+    .c-apply,
+    .c-img2 {
+      grid-column: 1 / -1;
+      grid-row: auto;
+    }
+    .c-apply {
+      margin-inline: calc(-1 * var(--pad));
+    }
+  }
+</style>

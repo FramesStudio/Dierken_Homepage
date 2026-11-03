@@ -1,0 +1,442 @@
+---
+/**
+ * Signature-Sequenz „Raumreise“ – ein Luxusbad entsteht in 3D, vollständig im Code (src/three/room.ts).
+ * Rohbau im Abendlicht → Linienlaser → XXL-Muster → raumhohe Platten → Boden → Einrichtung → Licht → Fuge.
+ * Ohne WebGL: Raumbild; bei reduzierter Bewegung: Standbild des fertigen 3D-Bades. Alle Schritte stehen im HTML.
+ */
+
+const steps = [
+  { n: '01', k: 'Idee', t: 'Ein leerer Raum. <em>Und eine Vorstellung.</em>', d: 'Rohbau, Abendlicht – und die Frage, wie sich dieser Raum einmal anfühlen soll. Wir hören zu: in der Ausstellung in Lohne oder bei Ihnen vor Ort.' },
+  { n: '02', k: 'Aufmaß', t: 'Maß nehmen. <em>Linien setzen.</em>', d: 'Beim Aufmaß vor Ort klären wir Flächen, Höhen und Anschlüsse. Der Linienlaser gibt die Achsen vor. Danach erhalten Sie ein transparentes Angebot.' },
+  { n: '03', k: 'Material', t: 'Das Material <em>wählen.</em>', d: 'Travertin-Optik, Calacatta oder Rillenrelief, Mosaik oder XXL-Format: In der Ausstellung vergleichen Sie Oberflächen an echten Mustern.' },
+  { n: '04', k: 'Wand', t: 'Raumhoch. <em>Fast fugenlos.</em>', d: 'Großformatige Platten machen Flächen ruhig – je größer das Format, desto wichtiger ist präzises Verlegen.' },
+  { n: '05', k: 'Boden', t: 'Fliese für <em>Fliese.</em>', d: 'Unsere Fliesenleger verlegen fachgerecht bei Ihnen vor Ort – Boden und Wand wie aus einem Guss.' },
+  { n: '06', k: 'Ausstattung', t: 'Der Raum bekommt <em>Charakter.</em>', d: 'Freistehende Wanne, Nische, bodengleiche Dusche: Ein Bad ist mehr als Fliesen. Anschlüsse und Details denken wir von Anfang an mit.' },
+  { n: '07', k: 'Licht', t: 'Ein Raum, <em>den man fühlt.</em>', d: 'Warmes Licht streift über Stein. Alles sitzt. Aus der ersten Idee ist ein Ort zum Wohlfühlen geworden.' },
+  { n: '08', k: 'Detail', t: 'Qualität zeigt sich <em>in der Fuge.</em>', d: 'Zwei Millimeter zwischen zwei Platten. Wer genau hinsieht, erkennt gutes Handwerk.' },
+];
+const labels = ['Nivellierlinie +1,00 m', '4,20 m', '2,90 m'];
+---
+
+<section class="rr" id="raumreise" aria-labelledby="rr-title" data-raumreise>
+  <div class="rr-intro wrap">
+    <p class="label">Raumreise · 8 Schritte</p>
+    <h2 class="h2" id="rr-title">Vom Rohbau<br />zum <em>Lieblingsraum.</em></h2>
+    <p class="lead">
+      Scrollen Sie durch die Entstehung eines Bades – vom ersten Licht im Rohbau bis zur letzten Fuge.
+    </p>
+  </div>
+
+  <div class="rr-track" data-rr-track>
+    <div class="rr-stage" data-rr-stage data-step="1">
+      <canvas class="rr-canvas" data-rr-canvas aria-hidden="true"></canvas>
+      <div class="rr-vignette" aria-hidden="true"></div>
+
+      <div class="rr-labels" aria-hidden="true">
+        {labels.map((l) => <span class="rr-dim" data-rr-dim>{l}</span>)}
+      </div>
+
+      <ol class="rr-steps" role="list">
+        {
+          steps.map((s, i) => (
+            <li class="rr-step" data-rr-step={i + 1}>
+              <p class="rr-k">
+                <span class="num">{s.n}</span> {s.k}
+              </p>
+              <h3 class="rr-t" set:html={s.t} />
+              <p class="rr-d">{s.d}</p>
+            </li>
+          ))
+        }
+      </ol>
+
+      <div class="rr-progress" aria-hidden="true">
+        <span class="rr-bar"></span>
+        {steps.map((s, i) => <span class="rr-tick" data-rr-tick={i + 1}>{s.k}</span>)}
+      </div>
+      <p class="rr-credit" aria-hidden="true">3D-Visualisierung · im Code erzeugt</p>
+    </div>
+  </div>
+
+  <div class="rr-outro wrap">
+    <p class="h3">Und Ihr Bad? <em>Lassen Sie uns darüber sprechen.</em></p>
+    <div class="rr-cta">
+      <a class="btn" href="/kontakt/">Beratung vereinbaren <span class="arrow" aria-hidden="true">→</span></a>
+      <a class="btn btn--outline" href="/ausstellung/">Ausstellung besuchen</a>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { webglAvailable, RANGES } from '../three/support';
+
+  const root = document.documentElement;
+  const section = document.querySelector<HTMLElement>('[data-raumreise]');
+  const track = section?.querySelector<HTMLElement>('[data-rr-track]');
+  const stage = section?.querySelector<HTMLElement>('[data-rr-stage]');
+  const canvas = section?.querySelector<HTMLCanvasElement>('[data-rr-canvas]');
+  const motion = root.classList.contains('motion');
+
+  if (section && track && stage && canvas && webglAvailable()) {
+    section.classList.add('has-gl');
+    const steps = [...stage.querySelectorAll<HTMLElement>('[data-rr-step]')];
+    const ticks = [...stage.querySelectorAll<HTMLElement>('[data-rr-tick]')];
+    const dims = [...stage.querySelectorAll<HTMLElement>('[data-rr-dim]')];
+    let booted = false;
+
+    const boot = async () => {
+      if (booted) return;
+      booted = true;
+      const { initRoom } = await import('../three/room');
+      if (!motion) {
+        initRoom(canvas, { observe: stage, staticP: 0.84 });
+        return;
+      }
+      const room = initRoom(canvas, { observe: stage });
+      let current = 0;
+      let active = -1;
+      let last = performance.now();
+      const target = () => {
+        const len = track.offsetHeight - stage.offsetHeight;
+        return len > 0 ? Math.min(1, Math.max(0, -track.getBoundingClientRect().top / len)) : 0;
+      };
+      const tick = (now: number) => {
+        const dt = Math.min(0.1, (now - last) / 1000);
+        last = now;
+        const t = target();
+        current += (t - current) * (1 - Math.pow(0.88, dt * 60));
+        if (Math.abs(t - current) < 0.0003) current = t;
+        room.setProgress(current);
+        stage.style.setProperty('--p', current.toFixed(4));
+        let idx = 0;
+        RANGES.forEach(([a], i) => current >= a && (idx = i));
+        if (idx !== active) {
+          active = idx;
+          stage.dataset.step = String(idx + 1);
+          steps.forEach((el, i) => el.classList.toggle('is-active', i === idx));
+          ticks.forEach((el, i) => el.classList.toggle('is-active', i <= idx));
+        }
+        room.labels().forEach((l, i) => {
+          const el = dims[i];
+          el.style.transform = `translate(${l.x.toFixed(1)}px, ${l.y.toFixed(1)}px) translate(-50%, -120%)`;
+          el.style.opacity = l.o.toFixed(3);
+        });
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    };
+
+    new IntersectionObserver(
+      ([e], io) => {
+        if (e.isIntersecting) {
+          io.disconnect();
+          const go = () =>
+            boot().catch((err) => {
+              section.classList.remove('has-gl');
+              console.warn('[raumreise] WebGL deaktiviert', err);
+            });
+          'requestIdleCallback' in window ? requestIdleCallback(go, { timeout: 400 }) : setTimeout(go, 50);
+        }
+      },
+      { rootMargin: '45% 0px' },
+    ).observe(section);
+  }
+</script>
+
+<style>
+  .rr {
+    position: relative;
+    background: var(--cream);
+    color: var(--ink);
+  }
+  .rr-intro {
+    display: grid;
+    gap: 1.5rem;
+    padding-top: var(--space-xl);
+    padding-bottom: var(--space-l);
+  }
+  .rr-intro .lead {
+    max-width: 30em;
+  }
+
+  .rr-stage {
+    --p: 0.84;
+    position: relative;
+    height: min(80vh, 780px);
+    overflow: hidden;
+    background: #15110d;
+  }
+  :global(html.motion) .rr .rr-track {
+    height: 900svh;
+  }
+  :global(html.motion) .rr.has-gl .rr-stage {
+    position: sticky;
+    top: 0;
+    height: 100svh;
+  }
+  .rr-canvas,
+  .rr-photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .rr-photo :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .rr.has-gl .rr-photo {
+    display: none;
+  }
+  .rr:not(.has-gl) .rr-canvas,
+  .rr:not(.has-gl) .rr-vignette,
+  .rr:not(.has-gl) .rr-progress,
+  .rr:not(.has-gl) .rr-labels,
+  :global(html:not(.motion)) .rr-progress {
+    display: none;
+  }
+  .rr-vignette {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(0deg, rgb(241 235 226 / 0.94) 0%, rgb(241 235 226 / 0.7) 24%, rgb(241 235 226 / 0) 50%),
+      radial-gradient(120% 90% at 50% 45%, transparent 60%, rgb(241 235 226 / 0.35) 100%);
+  }
+  :global(html:not(.motion)) .rr-vignette,
+  .rr:not(.has-gl) .rr-vignette {
+    background: radial-gradient(120% 90% at 50% 45%, transparent 60%, rgb(241 235 226 / 0.3) 100%);
+  }
+
+  .rr-dim {
+    position: absolute;
+    left: 0;
+    top: 0;
+    padding: 0.35em 0.7em;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: #08240f;
+    background: #5dff86;
+    opacity: 0;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    box-shadow: 0 0 24px rgb(93 255 134 / 0.45);
+  }
+
+  /* Liste (statisch / ohne WebGL) */
+  .rr-steps {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-m) var(--gap);
+    max-width: var(--max);
+    margin: 0 auto;
+    padding: var(--space-l) var(--pad) 0;
+  }
+  .rr-step {
+    display: grid;
+    gap: 0.6rem;
+    align-content: start;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line-strong);
+  }
+  .rr-k {
+    font-size: var(--fs-label);
+    font-weight: 700;
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    color: var(--navy);
+  }
+  .rr-t {
+    font-size: clamp(1.4rem, 1.1rem + 1vw, 2rem);
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1.02;
+    color: var(--navy);
+  }
+  .rr-t :global(em) {
+    font-style: italic;
+    color: var(--glaze-cobalt);
+  }
+  .rr-d {
+    color: var(--ink-soft);
+    font-size: 0.96rem;
+    line-height: 1.55;
+  }
+  .rr-stage .rr-steps {
+    display: none;
+  }
+  :global(html:not(.motion)) .rr-stage .rr-steps,
+  .rr:not(.has-gl) .rr-stage .rr-steps {
+    display: grid;
+  }
+  :global(html:not(.motion)) .rr-stage,
+  .rr:not(.has-gl) .rr-stage {
+    height: auto;
+    overflow: visible;
+  }
+  :global(html:not(.motion)) .rr-stage .rr-canvas {
+    position: relative;
+    display: block;
+    height: min(80vh, 780px);
+  }
+
+  /* Filmische Bildunterschrift */
+  :global(html.motion) .rr.has-gl .rr-steps {
+    display: block;
+    position: absolute;
+    left: var(--pad);
+    bottom: clamp(70px, 11vh, 110px);
+    width: min(560px, 46vw);
+    margin: 0;
+    padding: 0;
+  }
+  :global(html.motion) .rr.has-gl .rr-step {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    opacity: 0;
+    transform: translate3d(0, 22px, 0);
+    transition:
+      opacity 0.6s var(--ease),
+      transform 0.8s var(--ease);
+    text-shadow: 0 1px 24px rgb(241 235 226 / 0.9);
+  }
+  :global(html.motion) .rr.has-gl .rr-step .rr-t {
+    font-size: clamp(2rem, 1.2rem + 2.6vw, 3.6rem);
+    line-height: 0.98;
+  }
+  :global(html.motion) .rr.has-gl .rr-step .rr-d {
+    max-width: 30em;
+    color: #2b3350;
+  }
+  :global(html.motion) .rr.has-gl .rr-step.is-active {
+    opacity: 1;
+    transform: none;
+    transition-delay: 0.15s;
+  }
+
+  /* Fortschritt unten als Schrittleiste */
+  .rr-progress {
+    position: absolute;
+    left: var(--pad);
+    right: var(--pad);
+    bottom: clamp(22px, 4vh, 38px);
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 6px;
+  }
+  .rr-bar {
+    display: none;
+  }
+  .rr-tick {
+    position: relative;
+    padding-top: 10px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgb(11 31 88 / 0.42);
+    transition: color 0.5s var(--ease);
+  }
+  .rr-tick::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 2px;
+    background: rgb(11 31 88 / 0.14);
+  }
+  .rr-tick::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 2px;
+    background: var(--navy);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.7s var(--ease);
+  }
+  .rr-tick.is-active {
+    color: var(--navy);
+  }
+  .rr-tick.is-active::after {
+    transform: scaleX(1);
+  }
+  .rr-credit {
+    position: absolute;
+    right: var(--pad);
+    top: calc(var(--header-h) + 14px);
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgb(11 31 88 / 0.6);
+  }
+  .rr:not(.has-gl) .rr-credit {
+    display: none;
+  }
+
+  .rr-outro {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem 2rem;
+    padding-block: var(--space-l) var(--space-xl);
+  }
+  .rr-outro .h3 {
+    max-width: 22em;
+  }
+  .rr-cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  @media (max-width: 900px) {
+    .rr-steps {
+      grid-template-columns: 1fr 1fr;
+    }
+    :global(html.motion) .rr .rr-track {
+      height: 780svh;
+    }
+    :global(html.motion) .rr.has-gl .rr-steps {
+      left: 18px;
+      right: 18px;
+      bottom: 64px;
+      width: auto;
+    }
+    :global(html.motion) .rr.has-gl .rr-step .rr-t {
+      font-size: 1.9rem;
+    }
+    :global(html.motion) .rr.has-gl .rr-d {
+      font-size: 0.9rem;
+    }
+    .rr-progress {
+      left: 18px;
+      right: 18px;
+      bottom: 22px;
+    }
+    .rr-tick {
+      font-size: 0;
+      padding-top: 0;
+    }
+    .rr-credit {
+      left: 18px;
+      right: auto;
+    }
+  }
+  @media (max-width: 560px) {
+    .rr-steps {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

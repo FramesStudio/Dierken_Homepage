@@ -1,0 +1,37 @@
+---
+import Base from '../layouts/Base.astro';
+import { nav } from '../data/site';
+---
+
+<Base title="Seite nicht gefunden" description="Diese Seite gibt es nicht (mehr)." noindex>
+  <section class="nf">
+    <div class="wrap nf-grid">
+      <p class="label">Fehler 404</p>
+      <h1 class="display">Hier fehlt <em>eine Fliese.</em></h1>
+      <p class="lead">Die Seite, die Sie suchen, gibt es nicht oder nicht mehr. Vielleicht hilft einer dieser Wege weiter:</p>
+      <ul class="nf-links" role="list">
+        <li><a class="link" href="/">Startseite <span class="arrow" aria-hidden="true">→</span></a></li>
+        {nav.map((n) => <li><a class="link" href={n.href}>{n.label} <span class="arrow" aria-hidden="true">→</span></a></li>)}
+      </ul>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .nf {
+    padding-block: clamp(3rem, 12vh, 9rem) var(--space-xl);
+  }
+  .nf-grid {
+    display: grid;
+    gap: 1.5rem;
+  }
+  .nf .display {
+    font-size: clamp(2.6rem, 1.4rem + 5vw, 6.5rem);
+    max-width: 12ch;
+  }
+  .nf-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 2rem;
+  }
+</style>

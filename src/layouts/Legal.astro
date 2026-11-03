@@ -1,0 +1,86 @@
+---
+import Base from './Base.astro';
+interface Props {
+  title: string;
+  description: string;
+  heading: string;
+}
+const { title, description, heading } = Astro.props;
+---
+
+<Base title={title} description={description}>
+  <article class="legal">
+    <div class="wrap legal-grid">
+      <header class="legal-head">
+        <p class="label">Rechtliches</p>
+        <h1 class="h2">{heading}</h1>
+      </header>
+      <div class="legal-body">
+        <slot />
+      </div>
+    </div>
+  </article>
+</Base>
+
+<style>
+  .legal {
+    padding-block: clamp(2.5rem, 8vh, 6rem) var(--space-xl);
+  }
+  .legal-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--space-m) var(--gap);
+  }
+  .legal-head {
+    grid-column: 1 / span 4;
+    display: grid;
+    gap: 1.25rem;
+    align-content: start;
+    position: sticky;
+    top: calc(var(--header-h) + 2rem);
+    align-self: start;
+  }
+  .legal-body {
+    grid-column: 6 / -1;
+    max-width: 44em;
+  }
+  .legal-body :global(h2) {
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--navy);
+    margin: 2.5rem 0 0.75rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line-strong);
+  }
+  .legal-body :global(h2:first-child) {
+    margin-top: 0;
+  }
+  .legal-body :global(h3) {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--navy);
+    margin: 1.5rem 0 0.4rem;
+  }
+  .legal-body :global(p),
+  .legal-body :global(ul),
+  .legal-body :global(address) {
+    margin-bottom: 0.9rem;
+    color: var(--ink-soft);
+    font-style: normal;
+  }
+  .legal-body :global(ul) {
+    padding-left: 1.2rem;
+  }
+  .legal-body :global(a) {
+    color: var(--navy);
+    overflow-wrap: anywhere;
+  }
+  @media (max-width: 900px) {
+    .legal-head,
+    .legal-body {
+      grid-column: 1 / -1;
+      position: static;
+    }
+  }
+</style>

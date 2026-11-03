@@ -1,0 +1,83 @@
+/*
+ * Dierken – Design-Tokens
+ * Konzept: „Ihren Ideen Raum geben.“ Die Seite zeichnet einen Raum – von der ersten Linie
+ * bis zur fertigen Fuge. Architektonisches Raster, Papier und Tusche, Markenblau als Fläche.
+ *
+ * Markenwerte:
+ *  --navy  #0B1F58  aus dem CSS der bisherigen Website und dem Logo
+ *  --sky / --mist   aus dem D-Zeichen des Logos (Reel-Motive, gemessen)
+ *  Montserrat       wie in den Social-Media-Motiven
+ */
+:root {
+  /* Marke */
+  --navy: #0b1f58;
+  --navy-deep: #071339;
+  --navy-ink: #0a1747;
+  --sky: #6eaace;
+  --mist: #bcd4e6;
+
+  /* Glasuren (Fliesenwand) */
+  --glaze-deep: #0a1747;
+  --glaze-cobalt: #1d3c8f;
+  --grout: #d6cfc4;
+  --grout-dark: #08122f;
+
+  /* Material & Papier */
+  --paper: #f2efe9;
+  --cream: #f1ebe2;
+  --paper-2: #ebe7e0;
+  --stone: #d9d3c9;
+  --ink: #111a33;
+  --ink-soft: #4a5068;
+  --line: rgb(11 31 88 / 0.16);
+  --line-strong: rgb(11 31 88 / 0.38);
+  --on-navy: #f4f2ee;
+  --on-navy-soft: rgb(244 242 238 / 0.72);
+  --line-on-navy: rgb(188 212 230 / 0.22);
+
+  /* Typografie: Montserrat (Marke) – groß und kräftig für Headlines, kursiv-fett als Akzent wie in den Reels */
+  --font: 'Montserrat Variable', 'Montserrat', 'Helvetica Neue', Arial, sans-serif;
+  --font-display: 'Montserrat Variable', 'Montserrat', 'Helvetica Neue', Arial, sans-serif;
+  --fs-display: clamp(3rem, 1.4rem + 6.6vw, 9.4rem);
+  --fs-h2: clamp(2.3rem, 1.2rem + 4vw, 5.8rem);
+  --fs-h3: clamp(1.35rem, 1.1rem + 0.9vw, 2rem);
+  --fs-lead: clamp(1.08rem, 0.98rem + 0.45vw, 1.35rem);
+  --fs-body: 1.0625rem;
+  --fs-small: 0.875rem;
+  --fs-label: 0.72rem;
+  --track-label: 0.18em;
+  --track-tight: -0.035em;
+
+  /* Raster */
+  --max: 1560px;
+  --pad: clamp(20px, 5vw, 80px);
+  --gap: clamp(16px, 2.4vw, 40px);
+  --space-xs: 0.5rem;
+  --space-s: 1rem;
+  --space-m: clamp(1.5rem, 1rem + 2vw, 2.5rem);
+  --space-l: clamp(3rem, 2rem + 4vw, 6rem);
+  --space-xl: clamp(5rem, 3rem + 8vw, 11rem);
+
+  /* Bewegung – eine Kurve für alles */
+  --ease: cubic-bezier(0.2, 0.7, 0.1, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.25, 1);
+  --t-fast: 220ms;
+  --t-mid: 480ms;
+  --t-slow: 900ms;
+  --stagger: 90ms;
+
+  /* Ebenen */
+  --z-header: 50;
+  --z-menu: 60;
+  --z-dialog: 80;
+
+  --radius: 2px;
+  --header-h: 76px;
+  color-scheme: light;
+}
+
+@media (max-width: 900px) {
+  :root {
+    --header-h: 64px;
+  }
+}

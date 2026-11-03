@@ -1,0 +1,283 @@
+---
+/**
+ * Ausstellung & Kontakt – ohne Foto. Das D-Zeichen des Logos als räumliches Relief (CSS-3D-Ebenen),
+ * das sich beim Erscheinen aufbaut und dem Zeiger folgt.
+ */
+import { company, hours, routeUrl } from '../data/site';
+
+interface Props {
+  headingLevel?: 'h1' | 'h2';
+  title?: string;
+}
+const { headingLevel = 'h2', title } = Astro.props;
+const H = headingLevel;
+const layers = 14;
+---
+
+<section class="visit section" id="besuch" aria-labelledby="visit-title" data-visit>
+  <div class="wrap visit-grid">
+    <div class="visit-copy">
+      <p class="label">Ausstellung &amp; Kontakt</p>
+      <H class="h2" id="visit-title">
+        {title ? <Fragment set:html={title} /> : <Fragment>Kommen Sie vorbei.<br /><em>Wir nehmen uns Zeit.</em></Fragment>}
+      </H>
+
+      <div class="visit-cols">
+        <div class="visit-col" data-reveal style="--i:0">
+          <h3 class="label label--plain">Adresse</h3>
+          <address class="visit-big">{company.street}<br />{company.zip} {company.city}</address>
+          <a class="link" href={routeUrl} rel="noopener" target="_blank">Route planen<span class="sr-only"> (öffnet Google Maps in neuem Tab)</span> <span class="arrow" aria-hidden="true">↗</span></a>
+        </div>
+        <div class="visit-col" data-reveal style="--i:1">
+          <h3 class="label label--plain">Ausstellung</h3>
+          <dl class="visit-hours">
+            <dt>{hours.weekdayLabel}</dt>
+            <dd class="num">09:00 – 12:00 · 14:00 – 17:30 Uhr</dd>
+            <dt>Samstag</dt>
+            <dd>nach vorheriger Terminvereinbarung</dd>
+          </dl>
+        </div>
+      </div>
+
+      <div class="visit-call" data-reveal style="--i:2">
+        <a class="visit-phone num" href={company.phoneHref}>{company.phone}</a>
+        <div class="visit-actions">
+          <a class="btn" href="/kontakt/">Nachricht schreiben <span class="arrow" aria-hidden="true">→</span></a>
+          <a class="link" href={`mailto:${company.email}`}>{company.email}</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="mark-wrap" aria-hidden="true" data-mark>
+      <div class="mark">
+        {
+          Array.from({ length: layers }, (_, i) => (
+            <svg class="mark-layer" viewBox="10 9 52 46" style={`--l:${i}`}>
+              <path d="M13 12H49.6L58.2 32L49.6 52H13Z" />
+            </svg>
+          ))
+        }
+        <svg class="mark-face" viewBox="10 9 52 46">
+          <path class="mf-light" d="M13 12H49.6L58.2 32L49.6 52H13Z" />
+          <path class="mf-inner" d="M25 23.2H41.6L46.8 32L41.6 40.8H25Z" />
+          <path class="mf-mid" d="M13 12L25 23.2V40.8L13 52ZM13 52L25 40.8H41.6L49.6 52Z" />
+          <path class="mf-line" pathLength="1" d="M13 12H49.6L58.2 32L49.6 52H13Z M25 23.2H41.6L46.8 32L41.6 40.8H25Z" />
+        </svg>
+      </div>
+      <p class="mark-cap">Dierken · Industriering 13 · Lohne</p>
+    </div>
+  </div>
+</section>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-mark]').forEach((wrap) => {
+    const motion = document.documentElement.classList.contains('motion');
+    const io = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) {
+        wrap.classList.add('is-in');
+        io.disconnect();
+      }
+    }, { threshold: 0.3 });
+    io.observe(wrap);
+    if (!motion) {
+      wrap.classList.add('is-in');
+      return;
+    }
+    let rx = 0, ry = 0, tx = 0, ty = 0, raf = 0;
+    const loop = () => {
+      rx += (tx - rx) * 0.08;
+      ry += (ty - ry) * 0.08;
+      wrap.style.setProperty('--rx', `${rx.toFixed(2)}deg`);
+      wrap.style.setProperty('--ry', `${ry.toFixed(2)}deg`);
+      raf = Math.abs(tx - rx) + Math.abs(ty - ry) > 0.05 ? requestAnimationFrame(loop) : 0;
+    };
+    addEventListener('pointermove', (e) => {
+      const r = wrap.getBoundingClientRect();
+      if (r.bottom < 0 || r.top > innerHeight) return;
+      tx = ((e.clientY - (r.top + r.height / 2)) / innerHeight) * -22;
+      ty = ((e.clientX - (r.left + r.width / 2)) / innerWidth) * 34;
+      if (!raf) raf = requestAnimationFrame(loop);
+    }, { passive: true });
+  });
+</script>
+
+<style>
+  .visit {
+    background: var(--cream);
+    overflow: hidden;
+  }
+  .visit-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--space-l) var(--gap);
+    align-items: center;
+  }
+  .visit-copy {
+    grid-column: 1 / span 7;
+    display: grid;
+    gap: var(--space-m);
+  }
+  .visit-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-m) var(--gap);
+  }
+  .visit-col {
+    display: grid;
+    gap: 0.9rem;
+    align-content: start;
+    justify-items: start;
+    padding-top: 1.1rem;
+    border-top: 1px solid var(--line-strong);
+  }
+  .visit-big {
+    font-style: normal;
+    font-size: var(--fs-h3);
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -0.025em;
+    color: var(--navy);
+  }
+  .visit-hours {
+    display: grid;
+    gap: 0.2rem;
+  }
+  .visit-hours dt {
+    font-weight: 750;
+    color: var(--navy);
+  }
+  .visit-hours dd + dt {
+    margin-top: 0.8rem;
+  }
+  .visit-hours dd {
+    color: var(--ink-soft);
+  }
+  .visit-call {
+    display: grid;
+    gap: 1.2rem;
+    padding-top: 1.1rem;
+    border-top: 1px solid var(--line-strong);
+  }
+  .visit-phone {
+    justify-self: start;
+    font-size: clamp(2.8rem, 1.2rem + 5vw, 6.4rem);
+    font-weight: 900;
+    letter-spacing: -0.05em;
+    line-height: 0.95;
+    color: var(--navy);
+    text-decoration: none;
+    background: linear-gradient(var(--glaze-cobalt), var(--glaze-cobalt)) 0 100% / 0 4px no-repeat;
+    transition: background-size var(--t-mid) var(--ease);
+  }
+  .visit-phone:hover {
+    background-size: 100% 4px;
+  }
+  .visit-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem 1.75rem;
+  }
+
+  /* D-Zeichen als Relief */
+  .mark-wrap {
+    --rx: -8deg;
+    --ry: 18deg;
+    grid-column: 8 / -1;
+    display: grid;
+    justify-items: center;
+    gap: 1.5rem;
+    perspective: 1100px;
+  }
+  .mark {
+    position: relative;
+    width: min(100%, 440px);
+    aspect-ratio: 52 / 46;
+    transform-style: preserve-3d;
+    transform: rotateX(var(--rx)) rotateY(var(--ry));
+  }
+  .mark-layer,
+  .mark-face {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .mark-layer {
+    transform: translateZ(calc(var(--l) * -3px));
+    transition: transform 1.2s var(--ease);
+    transition-delay: calc(var(--l) * 25ms);
+  }
+  .mark-layer path {
+    fill: color-mix(in oklab, #0b1f58 calc(100% - var(--l) * 3%), #050c26);
+  }
+  .mark-face path {
+    transition: opacity 0.8s var(--ease);
+  }
+  .mf-light {
+    fill: #bad2e4;
+  }
+  .mf-inner {
+    fill: #0b1f58;
+  }
+  .mf-mid {
+    fill: #6ca8cc;
+  }
+  .mf-line {
+    fill: none;
+    stroke: var(--navy);
+    stroke-width: 0.5;
+    stroke-dasharray: 1 1;
+    stroke-dashoffset: 1;
+  }
+  .mark-cap {
+    font-size: var(--fs-label);
+    font-weight: 700;
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  /* Auftritt: Linie zeichnet, Flächen füllen sich, Relief fährt aus */
+  :global(html.motion) .mark-wrap:not(.is-in) .mark-layer {
+    transform: translateZ(0);
+  }
+  :global(html.motion) .mark-wrap:not(.is-in) :is(.mf-light, .mf-inner, .mf-mid) {
+    opacity: 0;
+  }
+  :global(html.motion) .mark-wrap.is-in .mf-line {
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 1.4s var(--ease-in-out);
+  }
+  :global(html.motion) .mark-wrap.is-in .mf-light {
+    transition-delay: 0.9s;
+  }
+  :global(html.motion) .mark-wrap.is-in .mf-mid {
+    transition-delay: 1.1s;
+  }
+  :global(html.motion) .mark-wrap.is-in .mf-inner {
+    transition-delay: 1.25s;
+  }
+  :global(html.motion) .mark-wrap.is-in .mark-layer {
+    transition-delay: calc(1.2s + var(--l) * 25ms);
+  }
+  :global(html:not(.motion)) .mf-line {
+    stroke-dashoffset: 0;
+  }
+
+  @media (max-width: 900px) {
+    .visit-copy,
+    .mark-wrap {
+      grid-column: 1 / -1;
+    }
+    .mark-wrap {
+      order: -1;
+    }
+    .mark {
+      width: 62%;
+    }
+    .visit-cols {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

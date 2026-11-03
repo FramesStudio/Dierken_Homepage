@@ -1,0 +1,126 @@
+---
+import Base from '../layouts/Base.astro';
+import PageIntro from '../components/PageIntro.astro';
+import ContactForm from '../components/ContactForm.astro';
+import { company, hours, routeUrl, osmUrl } from '../data/site';
+---
+
+<Base
+  title="Kontakt & Anfahrt"
+  description="Kontakt zur Dierken Bau und Fliesen GmbH in Lohne: Telefon 04442 92021, E-Mail info@fliesen-dierken.de, Industriering 13. Beratungstermin, Aufmaß oder Angebot anfragen."
+>
+  <PageIntro
+    label="Kontakt"
+    title="Erzählen Sie uns von <em>Ihrem Raum.</em>"
+    lead="Fragen, ein Vor-Ort-Termin oder ein Besuch in der Ausstellung: Rufen Sie an, schreiben Sie uns oder nutzen Sie das Formular."
+  />
+
+  <section class="section contact" aria-label="Kontaktmöglichkeiten">
+    <div class="wrap contact-grid">
+      <aside class="contact-info">
+        <div class="ci-block">
+          <h2 class="label label--plain">Telefon</h2>
+          <a class="ci-big num" href={company.phoneHref}>{company.phone}</a>
+          <p class="small muted">Fax {company.fax}</p>
+        </div>
+        <div class="ci-block">
+          <h2 class="label label--plain">E-Mail</h2>
+          <a class="ci-mail" href={`mailto:${company.email}`}>{company.email}</a>
+        </div>
+        <div class="ci-block">
+          <h2 class="label label--plain">Adresse</h2>
+          <address>
+            {company.name}<br />
+            {company.street}<br />
+            {company.zip} {company.city}
+          </address>
+          <p class="ci-links">
+            <a class="link" href={routeUrl} rel="noopener" target="_blank">Route mit Google Maps<span class="sr-only"> (neuer Tab)</span> <span class="arrow" aria-hidden="true">↗</span></a>
+            <a class="link" href={osmUrl} rel="noopener" target="_blank">OpenStreetMap<span class="sr-only"> (neuer Tab)</span> <span class="arrow" aria-hidden="true">↗</span></a>
+          </p>
+          <p class="small muted">Externe Links: Erst beim Anklicken werden Daten an den jeweiligen Kartendienst übertragen.</p>
+        </div>
+        <div class="ci-block">
+          <h2 class="label label--plain">Ausstellung</h2>
+          <p>
+            {hours.weekdayLabel}<br />
+            <span class="num">09:00 – 12:00</span> und <span class="num">14:00 – 17:30</span> Uhr<br />
+            {hours.saturday}
+          </p>
+        </div>
+      </aside>
+
+      <div class="contact-form">
+        <h2 class="h3">Nachricht schreiben</h2>
+        <ContactForm />
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .contact {
+    padding-top: var(--space-m);
+  }
+  .contact-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--space-l) var(--gap);
+  }
+  .contact-info {
+    grid-column: 1 / span 4;
+    display: grid;
+    gap: 2rem;
+    align-content: start;
+  }
+  .ci-block {
+    display: grid;
+    gap: 0.6rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line-strong);
+  }
+  .ci-block address {
+    font-style: normal;
+  }
+  .ci-big {
+    font-family: var(--font-display);
+    font-size: clamp(2.1rem, 1.4rem + 2.2vw, 3.2rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--navy);
+    text-decoration: none;
+    line-height: 1.1;
+  }
+  .ci-big:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+  }
+  .ci-mail {
+    font-size: 1.2rem;
+    font-weight: 650;
+    color: var(--navy);
+  }
+  .ci-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1.5rem;
+  }
+  .contact-form {
+    grid-column: 6 / -1;
+    display: grid;
+    gap: 1.5rem;
+    align-content: start;
+    padding: clamp(1.5rem, 3vw, 3rem);
+    background: var(--paper-2);
+  }
+  @media (max-width: 900px) {
+    .contact-info,
+    .contact-form {
+      grid-column: 1 / -1;
+    }
+    .contact-form {
+      order: -1;
+      margin-inline: calc(-1 * var(--pad));
+    }
+  }
+</style>

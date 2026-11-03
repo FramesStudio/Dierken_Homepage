@@ -1,0 +1,355 @@
+---
+/**
+ * Hero „Fliesenwand“
+ * WebGL-Wand aus glasierten Fliesen (src/three/hero-wall.ts). Beim Scrollen drehen sich die
+ * Fliesen und geben ein Raumbild frei. Ohne WebGL/bei reduzierter Bewegung: CSS-Fliesenwand.
+ */
+import { company } from '../data/site';
+import Logo from './Logo.astro';
+
+
+// Statische Wand (Fallback & erster Frame): deterministische Glasurfarben
+const glazes = ['#0b1f58', '#0a1747', '#142a6e', '#1d3c8f', '#0b1f58', '#6eaace', '#0a1747', '#bcd4e6', '#142a6e', '#e8e4dc'];
+let seed = 7;
+const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+const fallback = Array.from({ length: 12 * 14 }, () => glazes[Math.floor(rnd() * glazes.length)]);
+---
+
+<section class="hero" aria-labelledby="hero-title" data-hero>
+  <div class="hero-track" data-hero-track>
+    <div class="hero-stage" data-hero-stage>
+      <div class="hero-fallback" aria-hidden="true">
+        {fallback.map((c) => <i style={`--c:${c}`} />)}
+      </div>
+      <canvas class="hero-canvas" data-hero-canvas aria-hidden="true"></canvas>
+      <div class="hero-scrim" aria-hidden="true"></div>
+      <div class="hero-scrim hero-scrim--day" aria-hidden="true"></div>
+
+      <div class="hero-inner wrap">
+        <p class="label hero-eyebrow">Fliesen · Ausstellung · Verlegung — Lohne</p>
+        <div class="hero-mid">
+          <h1 class="display hero-title" id="hero-title">
+            <span class="line"><span>Ihren Ideen</span></span>
+            <span class="line"><span><em>Raum</em> geben.</span></span>
+          </h1>
+          <div class="hero-logo"><Logo height={60} /></div>
+        </div>
+        <div class="hero-bottom">
+          <p class="hero-lead">
+            Fliese für Fliese: Wir beraten Sie in unserer Ausstellung, liefern das Material und verlegen es
+            fachgerecht bei Ihnen vor Ort. Als Familienbetrieb – seit {company.founded}.
+          </p>
+          <div class="hero-cta">
+            <a class="btn btn--light" href="/kontakt/">Beratung vereinbaren <span class="arrow" aria-hidden="true">→</span></a>
+            <a class="link" href="#raumreise">Raumreise starten <span class="arrow" aria-hidden="true">↓</span></a>
+          </div>
+        </div>
+      </div>
+
+      <p class="hero-hint" aria-hidden="true"><span class="hint-tile"></span> Scrollen – die Fliesen drehen sich</p>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { webglAvailable } from '../three/support';
+
+  const root = document.documentElement;
+  const hero = document.querySelector<HTMLElement>('[data-hero]');
+  const track = hero?.querySelector<HTMLElement>('[data-hero-track]');
+  const stage = hero?.querySelector<HTMLElement>('[data-hero-stage]');
+  const canvas = hero?.querySelector<HTMLCanvasElement>('[data-hero-canvas]');
+  const motion = root.classList.contains('motion');
+
+  if (hero && track && stage && canvas) {
+    const progress = () => {
+      if (!motion) return 0;
+      const len = track.offsetHeight - stage.offsetHeight;
+      return len > 0 ? Math.min(1, Math.max(0, -track.getBoundingClientRect().top / len)) : 0;
+    };
+    // CSS-Variable für Scrim, Hinweis und Bildnachweis
+    if (motion) {
+      let ticking = false;
+      const update = () => {
+        const f = progress();
+        stage.style.setProperty('--flip', f.toFixed(3));
+        root.classList.toggle('hero-day', f > 0.55);
+        ticking = false;
+      };
+      addEventListener('scroll', () => !ticking && (ticking = true) && requestAnimationFrame(update), { passive: true });
+      update();
+    }
+
+    if (webglAvailable()) {
+      const boot = () =>
+        import('../three/hero-wall')
+          .then(({ initHeroWall }) => {
+            initHeroWall(canvas, {
+              progress,
+              reduced: !motion,
+              observe: stage,
+            });
+            requestAnimationFrame(() => requestAnimationFrame(() => hero.classList.add('gl-ready')));
+          })
+          .catch((err) => console.warn('[hero] WebGL deaktiviert', err));
+      // nach dem ersten Paint starten, damit Text sofort steht
+      // Mobil etwas später starten – bis dahin steht die CSS-Fliesenwand (hält die Seite reaktionsschnell)
+      const delay = matchMedia('(max-width: 900px)').matches ? 2600 : 0;
+      setTimeout(() => ('requestIdleCallback' in window ? requestIdleCallback(boot, { timeout: 800 }) : boot()), delay);
+    }
+  }
+</script>
+
+<style>
+  .hero {
+    position: relative;
+    background: var(--navy-deep);
+    color: var(--paper);
+    margin-top: calc(-1 * var(--header-h));
+  }
+  :global(html.motion) .hero-track {
+    height: 210svh;
+  }
+  .hero-stage {
+    --flip: 0;
+    position: relative;
+    height: 100svh;
+    min-height: 600px;
+    overflow: hidden;
+  }
+  :global(html.motion) .hero-stage {
+    position: sticky;
+    top: 0;
+  }
+  .hero-canvas,
+  .hero-fallback {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .hero-canvas {
+    opacity: 0;
+    transition: opacity 0.6s var(--ease);
+  }
+  :global(.hero.gl-ready) .hero-canvas {
+    opacity: 1;
+  }
+
+  /* CSS-Fliesenwand: Fallback und erster Frame */
+  .hero-fallback {
+    display: grid;
+    grid-template-columns: repeat(14, 1fr);
+    grid-auto-rows: calc(100svh / 7);
+    gap: 4px;
+    padding: 2px;
+    background: #d9d2c6;
+    transition: opacity 0.8s var(--ease);
+  }
+  .hero-fallback i {
+    background:
+      radial-gradient(120% 90% at 30% 20%, rgb(255 255 255 / 0.22), transparent 55%),
+      linear-gradient(160deg, color-mix(in srgb, var(--c) 82%, white) 0%, var(--c) 45%, color-mix(in srgb, var(--c) 70%, black) 100%);
+    border-radius: 5px;
+    box-shadow:
+      inset 0 0 0 1px rgb(255 255 255 / 0.12),
+      inset 0 -6px 12px rgb(0 0 0 / 0.25);
+  }
+  :global(.hero.gl-ready) .hero-fallback {
+    opacity: 0;
+  }
+
+  .hero-scrim {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(180deg, rgb(7 19 57 / 0.7) 0%, transparent calc(var(--header-h) + 140px)),
+      linear-gradient(90deg, rgb(7 19 57 / 0.55) 0%, rgb(7 19 57 / 0.15) 55%, transparent 80%),
+      linear-gradient(0deg, rgb(7 19 57 / 0.55) 0%, transparent 45%);
+    opacity: clamp(0, calc(1 - var(--flip) * 1.4), 1);
+  }
+  /* Tag: nach dem Umdrehen liegt warmer Travertin – Schrift wechselt ins Markenblau */
+  .hero-scrim--day {
+    background:
+      linear-gradient(180deg, rgb(241 235 226 / 0.75) 0%, transparent calc(var(--header-h) + 140px)),
+      linear-gradient(90deg, rgb(241 235 226 / 0.82) 0%, rgb(241 235 226 / 0.35) 52%, transparent 78%),
+      linear-gradient(0deg, rgb(241 235 226 / 0.7) 0%, transparent 42%);
+    opacity: clamp(0, calc((var(--flip) - 0.25) * 1.6), 1);
+  }
+
+  .hero-inner {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    padding-top: calc(var(--header-h) + clamp(2rem, 6vh, 4.5rem));
+    padding-bottom: clamp(2rem, 6vh, 4rem);
+    pointer-events: none;
+  }
+  .hero-inner a {
+    pointer-events: auto;
+  }
+  .hero-eyebrow {
+    --day: clamp(0, calc((var(--flip) - 0.3) * 2), 1);
+    color: color-mix(in oklab, var(--mist) calc((1 - var(--day)) * 100%), var(--navy));
+  }
+  .hero-mid {
+    align-self: center;
+    display: grid;
+    gap: clamp(1.25rem, 3vh, 2.25rem);
+    justify-items: start;
+  }
+  .hero-title {
+    --day: clamp(0, calc((var(--flip) - 0.3) * 2), 1);
+    color: color-mix(in oklab, var(--paper) calc((1 - var(--day)) * 100%), var(--navy));
+    font-size: clamp(3.2rem, 1rem + 8vw, 10.5rem);
+    line-height: 0.88;
+    letter-spacing: -0.05em;
+  }
+  .hero-logo {
+    box-shadow: 0 18px 40px -16px rgb(0 0 0 / 0.55);
+  }
+  :global(html.motion) .hero-logo {
+    animation: fade-up 1s var(--ease) both;
+    animation-delay: 0.45s;
+  }
+  .hero-title em {
+    color: color-mix(in oklab, var(--mist) calc((1 - var(--day)) * 100%), var(--glaze-cobalt));
+  }
+  .hero-title .line {
+    display: block;
+    overflow: hidden;
+    padding-bottom: 0.08em;
+    margin-bottom: -0.08em;
+  }
+  .hero-title .line > span {
+    display: inline-block;
+  }
+  .hero-bottom {
+    display: grid;
+    grid-template-columns: minmax(0, 30rem) auto;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1.5rem 3rem;
+  }
+  .hero-lead {
+    font-size: var(--fs-lead);
+    line-height: 1.55;
+    --day: clamp(0, calc((var(--flip) - 0.3) * 2), 1);
+    color: color-mix(in oklab, rgb(242 239 233 / 0.88) calc((1 - var(--day)) * 100%), #2b3350);
+  }
+  .hero-cta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem 1.75rem;
+  }
+  .hero-cta .link {
+    --day: clamp(0, calc((var(--flip) - 0.3) * 2), 1);
+    color: color-mix(in oklab, var(--paper) calc((1 - var(--day)) * 100%), var(--navy));
+  }
+  .hero-hint {
+    position: absolute;
+    z-index: 2;
+    right: var(--pad);
+    top: calc(var(--header-h) + clamp(2rem, 6vh, 4.5rem));
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    font-size: var(--fs-label);
+    font-weight: 600;
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    color: var(--mist);
+    opacity: calc(1 - var(--flip) * 4);
+  }
+  .hint-tile {
+    width: 14px;
+    height: 14px;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+  }
+  :global(html.motion) .hint-tile {
+    animation: hint-flip 2.4s var(--ease-in-out) infinite 2s;
+  }
+  @keyframes hint-flip {
+    0%,
+    60% {
+      transform: rotateY(0);
+    }
+    80%,
+    100% {
+      transform: rotateY(180deg);
+    }
+  }
+  :global(html:not(.motion)) .hero-hint {
+    display: none;
+  }
+  .hero-credit {
+    position: absolute;
+    z-index: 2;
+    right: var(--pad);
+    bottom: 1.25rem;
+    opacity: clamp(0, calc((var(--flip) - 0.55) * 4), 1);
+  }
+
+  /* Auftritt (CSS-first, unabhängig von WebGL) */
+  :global(html.motion) .hero-title .line > span {
+    animation: rise 1.2s var(--ease) both;
+    animation-delay: 0.15s;
+  }
+  :global(html.motion) .hero-title .line:nth-child(2) > span {
+    animation-delay: 0.27s;
+  }
+  :global(html.motion) .hero-eyebrow,
+  :global(html.motion) .hero-bottom {
+    animation: fade-up 1s var(--ease) both;
+    animation-delay: 0.55s;
+  }
+  @keyframes rise {
+    from {
+      transform: translate3d(0, 105%, 0);
+    }
+  }
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 16px, 0);
+    }
+  }
+
+  @media (max-width: 900px) {
+    .hero-fallback {
+      grid-template-columns: repeat(5, 1fr);
+      grid-auto-rows: calc(100svh / 9);
+    }
+    .hero-mid {
+      align-self: end;
+      margin-bottom: 1.5rem;
+    }
+    .hero-title {
+      font-size: clamp(2.6rem, 11.2vw, 5rem);
+    }
+    .hero-logo :global(img) {
+      width: 223px !important;
+      height: 42px !important;
+    }
+    .hero-bottom {
+      grid-template-columns: 1fr;
+    }
+    .hero-lead {
+      font-size: 1rem;
+    }
+    .hero-hint {
+      display: none;
+    }
+    .hero-scrim {
+      background: linear-gradient(0deg, rgb(7 19 57 / 0.9) 0%, rgb(7 19 57 / 0.55) 50%, rgb(7 19 57 / 0.2) 100%);
+    }
+    .hero-scrim--day {
+      background: linear-gradient(0deg, rgb(241 235 226 / 0.94) 0%, rgb(241 235 226 / 0.6) 50%, rgb(241 235 226 / 0.25) 100%);
+    }
+  }
+</style>

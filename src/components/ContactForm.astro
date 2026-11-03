@@ -1,0 +1,275 @@
+---
+/**
+ * Kontaktformular.
+ * - Ist PUBLIC_FORM_ENDPOINT gesetzt, wird per POST (JSON) gesendet; Erfolg erscheint nur bei HTTP 2xx.
+ * - Ohne Endpunkt (aktueller Stand): Das Formular bereitet eine E-Mail vor und öffnet das E-Mail-Programm.
+ *   Es wird dann ausdrücklich KEIN „gesendet“ angezeigt.
+ */
+import { company, formEndpoint } from '../data/site';
+const mailto = `mailto:${company.email}`;
+---
+
+<form
+  class="cf"
+  action={formEndpoint || mailto}
+  method="post"
+  enctype={formEndpoint ? undefined : 'text/plain'}
+  novalidate
+  data-contact-form
+  data-endpoint={formEndpoint}
+  data-mail={company.email}
+>
+  <div class="cf-grid">
+    <div class="field">
+      <label for="cf-name">Name <span aria-hidden="true">*</span></label>
+      <input id="cf-name" name="name" type="text" autocomplete="name" required aria-describedby="cf-name-err" />
+      <p class="err" id="cf-name-err" hidden>Bitte geben Sie Ihren Namen an.</p>
+    </div>
+    <div class="field">
+      <label for="cf-email">E-Mail <span aria-hidden="true">*</span></label>
+      <input id="cf-email" name="email" type="email" autocomplete="email" required aria-describedby="cf-email-err" />
+      <p class="err" id="cf-email-err" hidden>Bitte geben Sie eine gültige E-Mail-Adresse an.</p>
+    </div>
+    <div class="field">
+      <label for="cf-phone">Telefon <span class="opt">(optional)</span></label>
+      <input id="cf-phone" name="telefon" type="tel" autocomplete="tel" />
+    </div>
+    <div class="field">
+      <label for="cf-topic">Anliegen</label>
+      <select id="cf-topic" name="anliegen">
+        <option>Beratungstermin in der Ausstellung</option>
+        <option>Aufmaß und Angebot</option>
+        <option>Badsanierung</option>
+        <option>Balkon, Terrasse oder Treppe</option>
+        <option>Reparatur oder Pflege</option>
+        <option>Sonstiges</option>
+      </select>
+    </div>
+    <div class="field field--full">
+      <label for="cf-msg">Ihre Nachricht <span aria-hidden="true">*</span></label>
+      <textarea id="cf-msg" name="nachricht" rows="6" required aria-describedby="cf-msg-err"></textarea>
+      <p class="err" id="cf-msg-err" hidden>Bitte schreiben Sie uns kurz, worum es geht.</p>
+    </div>
+    <div class="hp" aria-hidden="true">
+      <label for="cf-web">Bitte leer lassen</label>
+      <input id="cf-web" name="website" type="text" tabindex="-1" autocomplete="off" />
+    </div>
+  </div>
+
+  <p class="cf-note small">
+    Pflichtfelder sind mit * gekennzeichnet. Ihre Angaben verwenden wir ausschließlich zur Bearbeitung Ihrer Anfrage. Mehr dazu in der
+    <a href="/datenschutz/">Datenschutzerklärung</a>.
+  </p>
+  {
+    !formEndpoint && (
+      <p class="cf-note small cf-mode">
+        Beim Absenden öffnet sich Ihr E-Mail-Programm mit der vorbereiteten Nachricht an {company.email}. Gesendet wird sie erst, wenn Sie
+        sie dort abschicken.
+      </p>
+    )
+  }
+
+  <div class="cf-actions">
+    <button class="btn" type="submit" data-submit>
+      <span data-submit-label>{formEndpoint ? 'Nachricht senden' : 'E-Mail vorbereiten'}</span>
+      <span class="arrow" aria-hidden="true">→</span>
+    </button>
+    <a class="link" href={company.phoneHref}>Lieber anrufen: {company.phone}</a>
+  </div>
+
+  <div class="cf-status" role="status" aria-live="polite" tabindex="-1" data-status hidden></div>
+</form>
+
+<script>
+  function init() {
+    const form = document.querySelector<HTMLFormElement>('[data-contact-form]');
+    if (!form) return;
+    const endpoint = form.dataset.endpoint || '';
+    const mail = form.dataset.mail!;
+    const status = form.querySelector<HTMLElement>('[data-status]')!;
+    const btn = form.querySelector<HTMLButtonElement>('[data-submit]')!;
+    const fields = ['cf-name', 'cf-email', 'cf-msg'].map((id) => form.querySelector<HTMLInputElement>(`#${id}`)!);
+
+    const validate = () => {
+      let first: HTMLElement | null = null;
+      for (const f of fields) {
+        const ok = f.value.trim() !== '' && f.checkValidity();
+        f.setAttribute('aria-invalid', String(!ok));
+        form.querySelector<HTMLElement>(`#${f.id}-err`)!.hidden = ok;
+        if (!ok && !first) first = f;
+      }
+      first?.focus();
+      return !first;
+    };
+    fields.forEach((f) =>
+      f.addEventListener('blur', () => {
+        if (f.getAttribute('aria-invalid') === 'true') {
+          const ok = f.value.trim() !== '' && f.checkValidity();
+          f.setAttribute('aria-invalid', String(!ok));
+          form.querySelector<HTMLElement>(`#${f.id}-err`)!.hidden = ok;
+        }
+      }),
+    );
+
+    const say = (html: string, kind: 'info' | 'ok' | 'error') => {
+      status.hidden = false;
+      status.dataset.kind = kind;
+      status.innerHTML = html;
+      status.focus();
+    };
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!validate()) return;
+      const data = Object.fromEntries(new FormData(form).entries()) as Record<string, string>;
+      if (data.website) return; // Honeypot
+
+      if (!endpoint) {
+        const subject = `Anfrage über die Website: ${data.anliegen}`;
+        const body = [
+          `Name: ${data.name}`,
+          `E-Mail: ${data.email}`,
+          data.telefon ? `Telefon: ${data.telefon}` : '',
+          `Anliegen: ${data.anliegen}`,
+          '',
+          data.nachricht,
+        ]
+          .filter((l, i) => l !== '' || i === 4)
+          .join('\n');
+        window.location.href = `mailto:${mail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        say(
+          `<strong>Ihre Nachricht ist vorbereitet – noch nicht gesendet.</strong> Ihr E-Mail-Programm sollte sich jetzt öffnen; bitte senden Sie die E-Mail dort ab. Öffnet sich nichts? Schreiben Sie direkt an <a href="mailto:${mail}">${mail}</a> oder rufen Sie uns an.`,
+          'info',
+        );
+        return;
+      }
+
+      btn.disabled = true;
+      btn.setAttribute('aria-busy', 'true');
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(data),
+        });
+        if (!res.ok) throw new Error(String(res.status));
+        form.reset();
+        say('<strong>Vielen Dank – Ihre Nachricht ist bei uns angekommen.</strong> Wir melden uns so bald wie möglich.', 'ok');
+      } catch {
+        say(
+          `<strong>Die Nachricht konnte leider nicht gesendet werden.</strong> Bitte versuchen Sie es erneut oder schreiben Sie direkt an <a href="mailto:${mail}">${mail}</a>.`,
+          'error',
+        );
+      } finally {
+        btn.disabled = false;
+        btn.removeAttribute('aria-busy');
+      }
+    });
+  }
+  try {
+    init();
+  } catch (e) {
+    console.warn('[kontakt]', e);
+  }
+</script>
+
+<style>
+  .cf {
+    display: grid;
+    gap: 1.5rem;
+  }
+  .cf-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem var(--gap);
+  }
+  .field {
+    display: grid;
+    gap: 0.45rem;
+  }
+  .field--full {
+    grid-column: 1 / -1;
+  }
+  label {
+    font-size: 0.82rem;
+    font-weight: 650;
+    letter-spacing: 0.04em;
+    color: var(--navy);
+  }
+  .opt {
+    font-weight: 450;
+    color: var(--ink-soft);
+  }
+  input,
+  select,
+  textarea {
+    width: 100%;
+    min-height: 52px;
+    padding: 0.8rem 0.95rem;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+    background: #fff;
+    font-size: 1rem;
+    transition:
+      border-color var(--t-fast) var(--ease),
+      box-shadow var(--t-fast) var(--ease);
+  }
+  textarea {
+    resize: vertical;
+    min-height: 160px;
+  }
+  input:hover,
+  select:hover,
+  textarea:hover {
+    border-color: var(--navy);
+  }
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: none;
+    border-color: var(--navy);
+    box-shadow: 0 0 0 3px rgb(110 170 206 / 0.45);
+  }
+  [aria-invalid='true'] {
+    border-color: #a3261b;
+  }
+  .err {
+    font-size: 0.82rem;
+    color: #a3261b;
+    font-weight: 550;
+  }
+  .hp {
+    position: absolute;
+    left: -9999px;
+  }
+  .cf-note {
+    color: var(--ink-soft);
+    max-width: 44em;
+  }
+  .cf-mode {
+    padding-left: 0.9rem;
+    border-left: 2px solid var(--sky);
+  }
+  .cf-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem 1.75rem;
+  }
+  .cf-status {
+    padding: 1rem 1.2rem;
+    border-left: 3px solid var(--sky);
+    background: #fff;
+  }
+  .cf-status[data-kind='ok'] {
+    border-color: #2f7a4b;
+  }
+  .cf-status[data-kind='error'] {
+    border-color: #a3261b;
+  }
+  @media (max-width: 640px) {
+    .cf-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

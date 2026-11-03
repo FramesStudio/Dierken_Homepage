@@ -1,0 +1,594 @@
+---
+/**
+ * Material erleben – gepinnte Bühne (src/three/library.ts).
+ * Eine Wandprobe 3,60 × 3,00 m im Spot; pro Material Kamerafahrt bis an die Fuge,
+ * Lichtschwenk beim Wechsel, Maßlinien zeichnen sich an die Fliese. Alles im Code erzeugt.
+ */
+const items = [
+  { id: 'travertin', a: 'Travertin', b: 'XXL', w: 120, h: 280, tone: 'Raumhoch und fast fugenlos.', text: 'Eine Platte vom Boden bis zur Decke: Die Schichtung des Steins läuft ruhig über die Wand, Fugen treten zurück.', lab: { kind: 'travertine', base: '#d9c4a4', size: [1.2, 2.8], pattern: 'grid', joint: 0.002 } },
+  { id: 'calacatta', a: 'Calacatta', b: 'Gold', w: 60, h: 120, tone: 'Poliert, mit goldenen Adern.', text: 'Kräftige Adern mit warmem Goldschimmer, hochglänzend – das klassische Luxusbild für Bad und Wohnbereich.', lab: { kind: 'marble', size: [0.6, 1.2], pattern: 'grid', joint: 0.002 } },
+  { id: 'rille', a: 'Rillen', b: 'relief', w: 30, h: 90, tone: 'Plastisch im Streiflicht.', text: 'Halbrunde Kanneluren werfen feine Schatten – eine Akzentwand hinter Wanne oder Waschtisch.', lab: { kind: 'fluted', base: '#dccab0', size: [0.3, 0.9], pattern: 'grid', joint: 0.002 } },
+  { id: 'zellige', a: 'Zellige', b: 'Salbei', w: 10, h: 10, tone: 'Handgemacht. Jede anders.', text: 'Kleine glasierte Fliesen mit welliger Oberfläche: Jede reflektiert das Licht ein wenig anders.', lab: { kind: 'glaze', base: '#8fa08c', size: [0.1, 0.1], pattern: 'grid', joint: 0.003 } },
+  { id: 'fischgraet', a: 'Fischgrät', b: 'Eiche', w: 15, h: 90, tone: 'Klassisch verlegt.', text: 'Holzoptik in Fischgrät: die Wärme von Parkett mit der Belastbarkeit einer Fliese.', lab: { kind: 'wood', base: '#e9c9a2', size: [0.9, 0.15], pattern: 'herringbone', joint: 0.002 } },
+  { id: 'fugenlos', a: 'Fugen', b: 'los', w: 0, h: 0, tone: 'Eine Fläche aus einem Guss.', text: 'Mineralisch, weich, ohne sichtbare Fugen – ruhig, modern und pflegeleicht.', lab: { kind: 'microcement', base: '#cbbfae', size: null, pattern: 'seamless', joint: 0 } },
+];
+const n = items.length;
+---
+
+<section class="lib" id="material" aria-labelledby="lib-title" data-library style={`--n:${n}`}>
+  <div class="lib-track" data-lib-track>
+    <div class="lib-stage" data-lib-stage>
+      <canvas class="lib-canvas" data-lib-canvas data-mats={JSON.stringify(items.map((m) => m.lab))} aria-hidden="true"></canvas>
+      <div class="lib-shade" aria-hidden="true"></div>
+
+      <svg class="lib-dims" aria-hidden="true" data-lib-dims>
+        <g class="dim dim-w">
+          <path class="dim-line" data-dim-w></path>
+          <g class="dim-pill" data-dim-wp><rect rx="2"></rect><text text-anchor="middle" dominant-baseline="central"></text></g>
+        </g>
+        <g class="dim dim-h">
+          <path class="dim-line" data-dim-h></path>
+          <g class="dim-pill" data-dim-hp><rect rx="2"></rect><text text-anchor="middle" dominant-baseline="central"></text></g>
+        </g>
+      </svg>
+
+      <div class="lib-ui wrap">
+        <div class="lib-top">
+          <p class="label">Material erleben</p>
+          <h2 class="sr-only" id="lib-title">Material erleben: sechs Oberflächen in echtem Format</h2>
+          <p class="lib-count num" aria-hidden="true">
+            <span class="lib-roll"><span class="lib-roll-in" data-lib-roll>{items.map((_, i) => <span>{String(i + 1).padStart(2, '0')}</span>)}</span></span>
+            <span class="lib-of">/ {String(n).padStart(2, '0')}</span>
+          </p>
+        </div>
+
+        <div class="lib-names" aria-live="polite">
+          {
+            items.map((m, i) => (
+              <div class:list={['lib-item', { 'is-active': i === 0 }]} data-lib-item={i}>
+                <p class="lib-name" aria-label={/^[A-ZÄÖÜ]/.test(m.b) ? `${m.a} ${m.b}` : `${m.a}${m.b}`}>
+                  <span class="lib-word">{[...m.a].map((ch, k) => <span class="ch" style={`--k:${k}`}>{ch}</span>)}</span>
+                  <em class="lib-word">{[...m.b].map((ch, k) => <span class="ch" style={`--k:${k + m.a.length}`}>{ch}</span>)}</em>
+                </p>
+                <p class="lib-format num">
+                  {m.w ? (
+                    <>
+                      <span data-count={m.w}>{m.w}</span> × <span data-count={m.h}>{m.h}</span> <small>cm</small>
+                    </>
+                  ) : (
+                    <>ohne Fugen</>
+                  )}
+                </p>
+                <p class="lib-tone">{m.tone}</p>
+                <p class="lib-text">{m.text}</p>
+              </div>
+            ))
+          }
+        </div>
+
+        <ol class="lib-nav" role="list" aria-label="Material wählen">
+          {
+            items.map((m, i) => (
+              <li>
+                <button type="button" class:list={['lib-btn', { 'is-active': i === 0 }]} data-lib-go={i} aria-current={i === 0 ? 'true' : undefined}>
+                  <span class="num">{String(i + 1).padStart(2, '0')}</span>
+                  <span class="lib-btn-name">{/^[A-ZÄÖÜ]/.test(m.b) ? `${m.a} ${m.b}` : `${m.a}${m.b}`}</span>
+                </button>
+              </li>
+            ))
+          }
+        </ol>
+      </div>
+
+      <p class="lib-credit" aria-hidden="true">Wandprobe 3,60 × 3,00 m · Materialstudie, im Code erzeugt</p>
+      <div class="lib-progress" aria-hidden="true"><span data-lib-bar></span></div>
+    </div>
+  </div>
+  <p class="lib-note wrap credit">
+    Materialstudien, im Code erzeugt – keine Produktabbildungen und keine Aussage zur Verfügbarkeit. Echte Muster und aktuelle Kollektionen zeigen wir Ihnen in der Ausstellung.
+  </p>
+</section>
+
+<script>
+  import { webglAvailable } from '../three/support';
+
+  const root = document.querySelector<HTMLElement>('[data-library]');
+  const track = root?.querySelector<HTMLElement>('[data-lib-track]');
+  const stage = root?.querySelector<HTMLElement>('[data-lib-stage]');
+  const canvas = root?.querySelector<HTMLCanvasElement>('[data-lib-canvas]');
+  if (root && track && stage && canvas) {
+    const motion = document.documentElement.classList.contains('motion');
+    const items = [...root.querySelectorAll<HTMLElement>('[data-lib-item]')];
+    const btns = [...root.querySelectorAll<HTMLButtonElement>('[data-lib-go]')];
+    const roll = root.querySelector<HTMLElement>('[data-lib-roll]')!;
+    const bar = root.querySelector<HTMLElement>('[data-lib-bar]')!;
+    const dims = root.querySelector<SVGSVGElement>('[data-lib-dims]')!;
+    const dw = dims.querySelector<SVGPathElement>('[data-dim-w]')!;
+    const dh = dims.querySelector<SVGPathElement>('[data-dim-h]')!;
+    const pw = dims.querySelector<SVGGElement>('[data-dim-wp]')!;
+    const ph = dims.querySelector<SVGGElement>('[data-dim-hp]')!;
+    const n = items.length;
+    const formats = items.map((it) => [...it.querySelectorAll<HTMLElement>('[data-count]')].map((el) => Number(el.dataset.count)));
+    let active = 0;
+    let lib: { setProgress: (p: number) => void; show: (i: number) => void } | null = null;
+
+    const countUp = (it: HTMLElement) => {
+      it.querySelectorAll<HTMLElement>('[data-count]').forEach((el) => {
+        const to = Number(el.dataset.count);
+        if (!motion) return;
+        const t0 = performance.now();
+        const step = (now: number) => {
+          const k = Math.min(1, (now - t0) / 900);
+          el.textContent = String(Math.round(to * (1 - Math.pow(1 - k, 3))));
+          if (k < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      });
+    };
+    const activate = (i: number) => {
+      if (i === active) return;
+      items[active].classList.remove('is-active');
+      items[active].classList.add('was-active');
+      const prev = items[active];
+      setTimeout(() => prev.classList.remove('was-active'), 700);
+      active = i;
+      items[i].classList.add('is-active');
+      roll.style.setProperty('--i', String(i));
+      btns.forEach((b, k) => {
+        b.classList.toggle('is-active', k === i);
+        b.toggleAttribute('aria-current', k === i);
+      });
+      dims.classList.remove('is-drawn');
+      countUp(items[i]);
+      if (!motion) lib?.show(i);
+    };
+
+    const progress = () => {
+      const len = track.offsetHeight - stage.offsetHeight;
+      return len > 0 ? Math.min(0.9999, Math.max(0, -track.getBoundingClientRect().top / len)) * n : 0;
+    };
+
+    btns.forEach((b, i) =>
+      b.addEventListener('click', () => {
+        if (!motion) return activate(i);
+        const len = track.offsetHeight - stage.offsetHeight;
+        const top = track.getBoundingClientRect().top + scrollY;
+        scrollTo({ top: top + (len * (i + 0.08)) / n, behavior: 'smooth' });
+      }),
+    );
+
+    const pill = (g: SVGGElement, x: number, y: number, text: string) => {
+      const t = g.querySelector('text')!;
+      const r = g.querySelector('rect')!;
+      t.textContent = text;
+      const w = text.length * 7.6 + 18;
+      r.setAttribute('x', String(x - w / 2));
+      r.setAttribute('y', String(y - 12));
+      r.setAttribute('width', String(w));
+      r.setAttribute('height', '24');
+      t.setAttribute('x', String(x));
+      t.setAttribute('y', String(y));
+    };
+    const off = (ax: number, ay: number, bx: number, by: number, d: number) => {
+      const len = Math.hypot(bx - ax, by - ay) || 1;
+      return [(-(by - ay) / len) * d, ((bx - ax) / len) * d];
+    };
+    let drawnFor = -1;
+    const drawDims = (f: { dims: [number, number][] | null; wide: number; settled: number; index: number }) => {
+      if (!f.dims || f.wide < 0.85 || !f.settled) {
+        dims.style.opacity = '0';
+        if (f.wide < 0.85 || !f.settled) drawnFor = -1;
+        return;
+      }
+      const [tl, tr, br] = f.dims;
+      const [ox, oy] = off(tl[0], tl[1], tr[0], tr[1], -22);
+      const [hx, hy] = off(tr[0], tr[1], br[0], br[1], -22);
+      const t = 7;
+      dw.setAttribute('d', `M${tl[0] + ox},${tl[1] + oy} L${tr[0] + ox},${tr[1] + oy} M${tl[0] + ox * 0.6},${tl[1] + oy * 0.6 - t} l0,${t * 2} M${tr[0] + ox * 0.6},${tr[1] + oy * 0.6 - t} l0,${t * 2}`);
+      dh.setAttribute('d', `M${tr[0] + hx},${tr[1] + hy} L${br[0] + hx},${br[1] + hy} M${tr[0] + hx * 0.6 - t},${tr[1] + hy * 0.6} l${t * 2},0 M${br[0] + hx * 0.6 - t},${br[1] + hy * 0.6} l${t * 2},0`);
+      const [w, h] = formats[f.index];
+      pill(pw, (tl[0] + tr[0]) / 2 + ox, (tl[1] + tr[1]) / 2 + oy, `${w} cm`);
+      pill(ph, (tr[0] + br[0]) / 2 + hx, (tr[1] + br[1]) / 2 + hy, `${h} cm`);
+      dims.style.opacity = String(Math.min(1, (f.wide - 0.85) / 0.15));
+      if (drawnFor !== f.index) {
+        drawnFor = f.index;
+        dims.classList.remove('is-drawn');
+        requestAnimationFrame(() => dims.classList.add('is-drawn'));
+      }
+    };
+
+    if (motion) {
+      let ticking = false;
+      const onScroll = () => {
+        ticking = false;
+        const p = progress();
+        lib?.setProgress(p);
+        activate(Math.min(n - 1, Math.floor(p)));
+        bar.style.transform = `scaleX(${(p / n).toFixed(4)})`;
+      };
+      addEventListener('scroll', () => !ticking && (ticking = true) && requestAnimationFrame(onScroll), { passive: true });
+      onScroll();
+    }
+
+    if (webglAvailable()) {
+      root.classList.add('has-gl');
+      new IntersectionObserver(
+        ([e], io) => {
+          if (!e.isIntersecting) return;
+          io.disconnect();
+          const go = () =>
+            import('../three/library')
+              .then(({ initLibrary }) => {
+                lib = initLibrary(canvas, JSON.parse(canvas.dataset.mats!), { reduced: !motion, observe: stage, onFrame: drawDims });
+                lib.setProgress(progress());
+                if (!motion) lib.show(active);
+              })
+              .catch((err) => {
+                root.classList.remove('has-gl');
+                console.warn('[material] WebGL deaktiviert', err);
+              });
+          'requestIdleCallback' in window ? requestIdleCallback(go, { timeout: 400 }) : setTimeout(go, 50);
+        },
+        { rootMargin: '45% 0px' },
+      ).observe(root);
+    }
+  }
+</script>
+
+<style>
+  .lib {
+    position: relative;
+    background: #081438;
+    color: var(--paper);
+  }
+  :global(html.motion) .lib.has-gl .lib-track {
+    height: calc(var(--n) * 95svh + 100svh);
+  }
+  .lib-stage {
+    position: relative;
+    height: 100svh;
+    min-height: 640px;
+    overflow: hidden;
+  }
+  :global(html.motion) .lib.has-gl .lib-stage {
+    position: sticky;
+    top: 0;
+  }
+  .lib-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .lib:not(.has-gl) .lib-canvas,
+  .lib:not(.has-gl) .lib-dims,
+  .lib:not(.has-gl) .lib-shade {
+    display: none;
+  }
+  .lib-shade {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(90deg, rgb(8 20 56 / 0.85) 0%, rgb(8 20 56 / 0.4) 30%, transparent 48%);
+  }
+
+  /* Maßlinien */
+  .lib-dims {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    opacity: 0;
+    overflow: visible;
+  }
+  .dim-line {
+    fill: none;
+    stroke: var(--mist);
+    stroke-width: 1.4;
+    stroke-dasharray: 2000;
+    stroke-dashoffset: 2000;
+  }
+  .dim-pill rect {
+    fill: var(--mist);
+  }
+  .dim-pill text {
+    fill: var(--navy-deep);
+    font: 800 12px var(--font);
+    letter-spacing: 0.06em;
+  }
+  .dim-pill {
+    opacity: 0;
+    transition: opacity 0.4s var(--ease) 0.6s;
+  }
+  .lib-dims.is-drawn .dim-line {
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 1.1s var(--ease-in-out);
+  }
+  .lib-dims.is-drawn .dim-h .dim-line {
+    transition-delay: 0.25s;
+  }
+  .lib-dims.is-drawn .dim-pill {
+    opacity: 1;
+  }
+
+  /* Typografie */
+  .lib-ui {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    padding-top: calc(var(--header-h) + 2.5rem);
+    padding-bottom: 3.2rem;
+    pointer-events: none;
+  }
+  .lib-ui button {
+    pointer-events: auto;
+  }
+  .lib-top {
+    display: flex;
+    align-items: baseline;
+    gap: 2rem;
+  }
+  .lib-top .label {
+    color: var(--mist);
+  }
+  .lib-count {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    font-weight: 800;
+    font-size: 0.9rem;
+    letter-spacing: 0.1em;
+    color: var(--mist);
+  }
+  .lib-roll {
+    display: inline-block;
+    height: 1.2em;
+    overflow: hidden;
+    line-height: 1.2;
+  }
+  .lib-roll-in {
+    --i: 0;
+    display: flex;
+    flex-direction: column;
+    transform: translateY(calc(var(--i) * -1.2em));
+    transition: transform 0.8s var(--ease);
+  }
+  .lib-of {
+    opacity: 0.5;
+  }
+
+  .lib-names {
+    position: relative;
+    align-self: center;
+    width: min(46vw, 640px);
+    min-height: 22rem;
+  }
+  .lib-item {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100%;
+    visibility: hidden;
+  }
+  .lib-item.is-active,
+  .lib-item.was-active {
+    visibility: visible;
+  }
+  .lib-name {
+    font-size: clamp(3.2rem, 1.2rem + 6vw, 8.6rem);
+    font-weight: 900;
+    letter-spacing: -0.055em;
+    line-height: 0.86;
+    color: var(--paper);
+    margin-bottom: 1.6rem;
+  }
+  .lib-word {
+    display: block;
+    overflow: hidden;
+    padding-bottom: 0.1em;
+    margin-bottom: -0.1em;
+  }
+  .lib-name em {
+    font-style: italic;
+    color: var(--mist);
+  }
+  .ch {
+    display: inline-block;
+    transform: translate3d(0, 110%, 0) rotate(8deg);
+    transform-origin: 0 100%;
+  }
+  .lib-item.is-active .ch {
+    transform: none;
+    transition: transform 0.9s var(--ease);
+    transition-delay: calc(0.12s + var(--k) * 28ms);
+  }
+  .lib-item.was-active .ch {
+    transform: translate3d(0, -110%, 0) rotate(-4deg);
+    transition: transform 0.55s var(--ease-in-out);
+    transition-delay: calc(var(--k) * 14ms);
+  }
+  .lib-format,
+  .lib-tone,
+  .lib-text {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  .lib-item.is-active :is(.lib-format, .lib-tone, .lib-text) {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 0.7s var(--ease) 0.45s,
+      transform 0.8s var(--ease) 0.45s;
+  }
+  .lib-item.is-active .lib-tone {
+    transition-delay: 0.55s;
+  }
+  .lib-item.is-active .lib-text {
+    transition-delay: 0.65s;
+  }
+  .lib-item.was-active :is(.lib-format, .lib-tone, .lib-text) {
+    opacity: 0;
+    transition: opacity 0.3s var(--ease);
+  }
+  .lib-format {
+    font-size: clamp(1.6rem, 1rem + 1.8vw, 2.6rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--mist);
+    margin-bottom: 0.8rem;
+  }
+  .lib-format small {
+    font-size: 0.5em;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+  }
+  .lib-tone {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--paper);
+    margin-bottom: 0.35rem;
+  }
+  .lib-text {
+    max-width: 30em;
+    color: var(--on-navy-soft);
+  }
+
+  .lib-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.6rem;
+  }
+  .lib-btn {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: rgb(244 242 238 / 0.5);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color var(--t-mid) var(--ease);
+  }
+  .lib-btn .num {
+    font-size: 0.7rem;
+    color: var(--sky);
+  }
+  .lib-btn:hover,
+  .lib-btn.is-active {
+    color: var(--paper);
+  }
+  .lib-btn-name {
+    background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat;
+    transition: background-size var(--t-mid) var(--ease);
+  }
+  .lib-btn.is-active .lib-btn-name {
+    background-size: 100% 1px;
+  }
+  .lib-btn:focus-visible {
+    outline-color: var(--mist);
+  }
+  .lib-credit {
+    position: absolute;
+    right: var(--pad);
+    top: calc(var(--header-h) + 2.6rem);
+    z-index: 2;
+    font-size: 0.64rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgb(188 212 230 / 0.6);
+  }
+  .lib-progress {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    background: rgb(188 212 230 / 0.12);
+  }
+  .lib-progress span {
+    display: block;
+    height: 100%;
+    background: var(--mist);
+    transform-origin: left;
+    transform: scaleX(0);
+  }
+  .lib-note {
+    padding-block: 1.5rem 3rem;
+    color: rgb(244 242 238 / 0.7);
+  }
+
+  /* ohne WebGL / reduzierte Bewegung: Liste statt Bühne */
+  .lib:not(.has-gl) .lib-names {
+    width: auto;
+    min-height: 0;
+    display: grid;
+    gap: var(--space-m);
+  }
+  .lib:not(.has-gl) .lib-item {
+    position: static;
+    transform: none;
+    visibility: visible;
+  }
+  .lib:not(.has-gl) :is(.ch, .lib-format, .lib-tone, .lib-text) {
+    transform: none;
+    opacity: 1;
+  }
+  .lib:not(.has-gl) .lib-stage {
+    height: auto;
+  }
+  .lib:not(.has-gl) .lib-nav,
+  .lib:not(.has-gl) .lib-progress,
+  .lib:not(.has-gl) .lib-credit {
+    display: none;
+  }
+  :global(html:not(.motion)) .lib-progress {
+    display: none;
+  }
+
+  @media (max-width: 900px) {
+    .lib-shade {
+      background: linear-gradient(0deg, rgb(8 20 56 / 0.95) 0%, rgb(8 20 56 / 0.6) 38%, transparent 60%);
+    }
+    .lib-ui {
+      grid-template-rows: auto 1fr auto;
+      padding-top: calc(var(--header-h) + 1.2rem);
+      padding-bottom: 1.4rem;
+    }
+    .lib-names {
+      align-self: end;
+      width: 100%;
+      min-height: 15rem;
+    }
+    .lib-item {
+      top: auto;
+      bottom: 0;
+      transform: none;
+    }
+    .lib-name {
+      font-size: clamp(2.6rem, 13vw, 4rem);
+      margin-bottom: 0.8rem;
+    }
+    .lib-text {
+      display: none;
+    }
+    .lib-nav {
+      gap: 0 1rem;
+    }
+    .lib-btn-name {
+      display: none;
+    }
+    .lib-credit {
+      display: none;
+    }
+  }
+</style>

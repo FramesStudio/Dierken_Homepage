@@ -1,0 +1,189 @@
+---
+import { Image } from 'astro:assets';
+import Base from '../layouts/Base.astro';
+import PageIntro from '../components/PageIntro.astro';
+import Visit from '../components/Visit.astro';
+import { own } from '../data/images';
+import { company } from '../data/site';
+const a = own.ausstellung;
+---
+
+<Base
+  title="Fliesenausstellung in Lohne"
+  description="Besuchen Sie unsere Fliesenausstellung am Industriering 13 in Lohne: Wand- und Bodenfliesen vergleichen, Raumwirkung testen, persönlich beraten werden. Mo–Fr 9–12 und 14–17:30 Uhr."
+>
+  <PageIntro
+    label="Ausstellung"
+    title="Fliesen muss man <em>sehen.</em>"
+    lead="Unsere Ausstellung in Lohne unterstützt Sie bei der Auswahl Ihrer Wand- und Bodenfliesen. Testen Sie Raumwirkung und Kombinationsmöglichkeiten unseres umfangreichen Sortiments – mit persönlicher Beratung."
+  >
+    <div class="intro-cta">
+      <a class="btn" href="/kontakt/">Termin vereinbaren <span class="arrow" aria-hidden="true">→</span></a>
+      <a class="link" href="#besuch">Öffnungszeiten &amp; Anfahrt <span class="arrow" aria-hidden="true">↓</span></a>
+    </div>
+  </PageIntro>
+
+  <section class="show" aria-label="Eindrücke aus der Ausstellung">
+    <div class="wrap show-grid">
+      <figure class="s1 frame" data-tiles>
+        <Image src={a[0].src} alt={a[0].alt} widths={[640, 960, 1159]} sizes="(max-width: 900px) 100vw, 66vw" layout="none" />
+      </figure>
+      <figure class="s2 frame" data-tiles style="--i:1">
+        <Image src={a[1].src} alt={a[1].alt} widths={[480, 800]} sizes="(max-width: 900px) 50vw, 30vw" layout="none" />
+      </figure>
+      <div class="s-text" data-reveal>
+        <p class="label">Vor Ort</p>
+        <p class="h3">Große Formate in echter Größe, Muster zum Anfassen und Zeit für Ihre Fragen.</p>
+      </div>
+      <figure class="s3 frame" data-tiles>
+        <Image src={a[2].src} alt={a[2].alt} widths={[480, 800, 1200]} sizes="(max-width: 900px) 50vw, 40vw" layout="none" />
+      </figure>
+      <figure class="s4 frame" data-tiles style="--i:1">
+        <Image src={a[3].src} alt={a[3].alt} widths={[480, 800, 1200]} sizes="(max-width: 900px) 100vw, 50vw" layout="none" />
+      </figure>
+      <figure class="s5 frame" data-tiles>
+        <Image src={a[4].src} alt={a[4].alt} widths={[480, 800, 1200]} sizes="(max-width: 900px) 100vw, 42vw" layout="none" />
+      </figure>
+      <figure class="s6 frame" data-tiles style="--i:1">
+        <Image src={a[5].src} alt={a[5].alt} widths={[480, 800, 1200]} sizes="(max-width: 900px) 100vw, 50vw" layout="none" />
+      </figure>
+    </div>
+  </section>
+
+  <section class="section prep" aria-labelledby="prep-title">
+    <div class="wrap prep-grid">
+      <h2 class="h2" id="prep-title">Gut vorbereitet <em>zum Termin.</em></h2>
+      <ul class="prep-list" role="list">
+        <li data-reveal style="--i:0">
+          <span class="num">01</span>
+          <p><strong>Maße und Grundriss</strong> Ungefähre Flächen helfen, Formate und Mengen einzuschätzen.</p>
+        </li>
+        <li data-reveal style="--i:1">
+          <span class="num">02</span>
+          <p><strong>Fotos vom Raum</strong> Licht, Bestand und Anschlüsse lassen sich so besser beurteilen.</p>
+        </li>
+        <li data-reveal style="--i:2">
+          <span class="num">03</span>
+          <p><strong>Ideen und Vorlieben</strong> Bilder, Farben, Materialien – alles, was Ihnen gefällt.</p>
+        </li>
+        <li data-reveal style="--i:3">
+          <span class="num">04</span>
+          <p><strong>Samstags?</strong> Gern nach vorheriger Terminvereinbarung unter <a href={company.phoneHref}>{company.phone}</a>.</p>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <Visit title="Industriering 13,<br /><em>Lohne.</em>" />
+</Base>
+
+<style>
+  .intro-cta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem 1.75rem;
+    margin-top: 0.5rem;
+  }
+  .show-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--gap);
+  }
+  .s1 {
+    grid-column: 1 / span 8;
+    aspect-ratio: 1159 / 800;
+  }
+  .s2 {
+    grid-column: 9 / span 4;
+    align-self: end;
+    aspect-ratio: 3 / 4;
+  }
+  .s-text {
+    grid-column: 2 / span 5;
+    display: grid;
+    gap: 1rem;
+    padding-block: var(--space-l);
+  }
+  .s3 {
+    grid-column: 8 / span 5;
+    margin-top: var(--space-l);
+    aspect-ratio: 4 / 3;
+  }
+  .s4 {
+    grid-column: 1 / span 6;
+    aspect-ratio: 3 / 2;
+  }
+  .s5 {
+    grid-column: 7 / span 5;
+    margin-top: var(--space-xl);
+    aspect-ratio: 4 / 5;
+  }
+  .s6 {
+    grid-column: 2 / span 6;
+    margin-top: calc(-1 * var(--space-l));
+    aspect-ratio: 3 / 2;
+  }
+  .prep-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--space-m) var(--gap);
+  }
+  .prep-grid .h2 {
+    grid-column: 1 / span 5;
+  }
+  .prep-list {
+    grid-column: 7 / -1;
+    display: grid;
+  }
+  .prep-list li {
+    display: grid;
+    grid-template-columns: 3rem 1fr;
+    gap: 1rem;
+    padding-block: 1.2rem;
+    border-top: 1px solid var(--line-strong);
+  }
+  .prep-list .num {
+    color: var(--sky);
+    font-weight: 650;
+    font-size: 0.9rem;
+  }
+  .prep-list strong {
+    display: block;
+    color: var(--navy);
+    font-size: 1.1rem;
+    margin-bottom: 0.2rem;
+  }
+  .prep-list p {
+    color: var(--ink-soft);
+  }
+  @media (max-width: 900px) {
+    .s1,
+    .s4,
+    .s6 {
+      grid-column: 1 / -1;
+      margin-top: 0;
+    }
+    .s2 {
+      grid-column: 1 / span 6;
+    }
+    .s3 {
+      grid-column: 7 / -1;
+      margin-top: 0;
+      align-self: end;
+    }
+    .s-text {
+      grid-column: 1 / -1;
+      padding-block: 1rem;
+    }
+    .s5 {
+      grid-column: 1 / -1;
+      margin-top: 0;
+      aspect-ratio: 4 / 3;
+    }
+    .prep-grid .h2,
+    .prep-list {
+      grid-column: 1 / -1;
+    }
+  }
+</style>

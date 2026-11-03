@@ -1,0 +1,105 @@
+---
+import '../styles/global.css';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { company, hours } from '../data/site';
+import fontLatin from '@fontsource-variable/montserrat/files/montserrat-latin-wght-normal.woff2?url';
+
+interface Props {
+  title: string;
+  description: string;
+  /** Pfad relativ zur Domain, z. B. /leistungen/ */
+  path?: string;
+  ogImage?: string;
+  noindex?: boolean;
+  /** Header startet transparent über hellem Hero */
+  headerOverlay?: boolean;
+}
+
+const { title, description, path = Astro.url.pathname, ogImage = '/og-dierken.jpg', noindex = false, headerOverlay = false } = Astro.props;
+const canonical = new URL(path, Astro.site).href;
+const fullTitle = title.includes('Dierken') ? title : `${title} · Dierken Bau und Fliesen, Lohne`;
+
+/* Strukturierte Daten – ausschließlich verifizierte Angaben (keine Geo-Koordinaten, keine Bewertungen) */
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'HomeAndConstructionBusiness',
+  '@id': `${company.url}/#organization`,
+  name: company.name,
+  url: company.url,
+  logo: `${company.url}/brand/dierken-logo.svg`,
+  image: `${company.url}/og-dierken.jpg`,
+  telephone: company.phoneIntl,
+  faxNumber: '+49 4442 72679',
+  email: company.email,
+  foundingDate: String(company.founded),
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: company.street,
+    postalCode: company.zip,
+    addressLocality: company.city,
+    addressRegion: company.region,
+    addressCountry: company.country,
+  },
+  openingHoursSpecification: hours.weekdays.map((h) => ({
+    '@type': 'OpeningHoursSpecification',
+    dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    opens: h.from,
+    closes: h.to,
+  })),
+  sameAs: [company.facebook],
+  vatID: company.vatId,
+};
+---
+
+<!doctype html>
+<html lang="de" class="no-js">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex" />}
+    <meta name="theme-color" content="#0b1f58" />
+    <link rel="preload" href={fontLatin} as="font" type="font/woff2" crossorigin />
+    <link rel="sitemap" href="/sitemap.xml" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="de_DE" />
+    <meta property="og:site_name" content={company.name} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={new URL(ogImage, Astro.site).href} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script is:inline>
+      (function () {
+        var d = document.documentElement;
+        d.classList.remove('no-js');
+        d.classList.add('js');
+        // ?motion=0 erzwingt die reduzierte Variante (zum Testen und Vorführen)
+        var r =
+          /[?&]motion=0\b/.test(location.search) ||
+          (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+        d.classList.add(r ? 'reduced' : 'motion');
+      })();
+    </script>
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+    <slot name="head" />
+  </head>
+  <body>
+    <a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
+    <Header overlay={headerOverlay} />
+    <main id="inhalt" tabindex="-1">
+      <slot />
+    </main>
+    <Footer />
+    <script>
+      import '../scripts/motion';
+    </script>
+  </body>
+</html>

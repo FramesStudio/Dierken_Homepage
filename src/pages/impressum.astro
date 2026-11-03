@@ -1,0 +1,69 @@
+---
+import Legal from '../layouts/Legal.astro';
+import { company } from '../data/site';
+---
+
+<Legal title="Impressum" heading="Impressum" description="Impressum der Dierken Bau und Fliesen GmbH, Industriering 13, 49393 Lohne.">
+  <h2>Angaben gemäß § 5 DDG</h2>
+  <address>
+    {company.name}<br />
+    {company.street}<br />
+    {company.zip} {company.city}
+  </address>
+  <p>Geschäftsführer: {company.managingDirector}</p>
+
+  <h2>Kontakt</h2>
+  <p>
+    Telefon: <a href={company.phoneHref}>{company.phone}</a><br />
+    Fax: {company.fax}<br />
+    E-Mail: <a href={`mailto:${company.email}`}>{company.email}</a><br />
+    Web: <a href={company.url}>www.fliesen-dierken.de</a>
+  </p>
+
+  <h2>Registereintrag</h2>
+  <p>
+    Registergericht: {company.register.court}<br />
+    Registernummer: {company.register.number}
+  </p>
+
+  <h2>Umsatzsteuer-ID</h2>
+  <p>Umsatzsteuer-Identifikationsnummer gemäß § 27a Umsatzsteuergesetz: {company.vatId}</p>
+
+  <h2>Zuständige Kammer</h2>
+  <address>
+    {company.chamber.name}<br />
+    {company.chamber.street}<br />
+    {company.chamber.city}<br />
+    <a href={company.chamber.url} rel="noopener" target="_blank">www.hwk-oldenburg.de</a>
+  </address>
+
+  <h2>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV</h2>
+  <p>{company.managingDirector}, Anschrift wie oben</p>
+
+  <h2>Verbraucherstreitbeilegung</h2>
+  <p>
+    Wir sind nicht bereit und nicht verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle
+    teilzunehmen.
+  </p>
+
+  <h2>Bildnachweise</h2>
+  <ul>
+    <li>Fotos der Ausstellung, des Firmengebäudes und von der Baustelle: {company.name}</li>
+    <li>Raum- und Materialbilder (gekennzeichnet als Herstellerbild): © Ceramiche CCV Castelvetro S.p.A., © XL Style s.r.l.</li>
+  </ul>
+
+  <h2>Haftung für Inhalte und Links</h2>
+  <p>
+    Die Inhalte dieser Website wurden mit größter Sorgfalt erstellt. Für die Richtigkeit, Vollständigkeit und Aktualität
+    der Inhalte können wir jedoch keine Gewähr übernehmen. Für Inhalte externer Websites, auf die wir verlinken, sind
+    ausschließlich deren Betreiber verantwortlich. Bei Bekanntwerden von Rechtsverletzungen entfernen wir entsprechende
+    Links umgehend.
+  </p>
+
+  <h2>Urheberrecht</h2>
+  <p>
+    Die Inhalte und Werke auf diesen Seiten unterliegen dem deutschen Urheberrecht. Vervielfältigung, Bearbeitung,
+    Verbreitung und jede Art der Verwertung außerhalb der Grenzen des Urheberrechts bedürfen der schriftlichen Zustimmung
+    des jeweiligen Rechteinhabers.
+  </p>
+</Legal>

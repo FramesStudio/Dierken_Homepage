@@ -1,0 +1,88 @@
+---
+import Legal from '../layouts/Legal.astro';
+import { company } from '../data/site';
+---
+
+<Legal
+  title="Datenschutzerklärung"
+  heading={'Datenschutz­erklärung'}
+  description="Datenschutzerklärung der Dierken Bau und Fliesen GmbH: welche Daten beim Besuch dieser Website und bei Kontaktaufnahme verarbeitet werden."
+>
+  <h2>1. Verantwortlicher</h2>
+  <address>
+    {company.name}<br />
+    vertreten durch den Geschäftsführer {company.managingDirector}<br />
+    {company.street}, {company.zip} {company.city}<br />
+    Telefon: <a href={company.phoneHref}>{company.phone}</a><br />
+    E-Mail: <a href={`mailto:${company.email}`}>{company.email}</a>
+  </address>
+
+  <h2>2. Das Wichtigste in Kürze</h2>
+  <ul>
+    <li>Diese Website setzt keine Cookies und verwendet keine Analyse- oder Tracking-Dienste.</li>
+    <li>Schriften und alle Programmbibliotheken werden von unserem eigenen Server geladen – es werden keine Daten an Font- oder CDN-Anbieter übertragen.</li>
+    <li>Karten und soziale Netzwerke sind nur verlinkt, nicht eingebettet. Daten werden erst übertragen, wenn Sie einen solchen Link anklicken.</li>
+  </ul>
+
+  <h2>3. Aufruf der Website (Server-Logfiles)</h2>
+  <p>
+    Beim Aufruf dieser Website verarbeitet der von uns beauftragte Hosting-Anbieter automatisch Daten, die Ihr Browser
+    übermittelt: IP-Adresse, Datum und Uhrzeit, aufgerufene Seite, Referrer-URL, Browsertyp und Betriebssystem. Diese
+    Daten sind technisch erforderlich, um die Website auszuliefern und ihre Sicherheit und Stabilität zu gewährleisten.
+  </p>
+  <p>
+    Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einem sicheren und funktionsfähigen
+    Betrieb). Logfiles werden nur so lange gespeichert, wie es dafür erforderlich ist, und anschließend gelöscht. Mit dem
+    Hosting-Anbieter besteht ein Vertrag zur Auftragsverarbeitung nach Art. 28 DSGVO.
+  </p>
+
+  <h2>4. Kontakt per Telefon, E-Mail oder Formular</h2>
+  <p>
+    Wenn Sie uns kontaktieren, verarbeiten wir Ihre Angaben (z. B. Name, E-Mail-Adresse, Telefonnummer, Ihre Nachricht),
+    um Ihre Anfrage zu beantworten. Das Kontaktformular bereitet eine E-Mail in Ihrem eigenen E-Mail-Programm vor; die
+    Übermittlung erfolgt erst, wenn Sie diese E-Mail selbst absenden.
+  </p>
+  <p>
+    Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO, sofern Ihre Anfrage auf einen Vertrag oder vorvertragliche Maßnahmen
+    abzielt, ansonsten Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Beantwortung von Anfragen). Wir löschen
+    die Daten, sobald sie nicht mehr erforderlich sind und keine gesetzlichen Aufbewahrungspflichten entgegenstehen.
+  </p>
+
+  <h2>5. Bewerbungen</h2>
+  <p>
+    Bewerbungsunterlagen, die Sie uns per E-Mail oder Post senden, verarbeiten wir ausschließlich zur Durchführung des
+    Bewerbungsverfahrens (Art. 6 Abs. 1 lit. b DSGVO). Kommt kein Arbeitsverhältnis zustande, löschen wir die Unterlagen
+    in der Regel sechs Monate nach Abschluss des Verfahrens, sofern Sie nicht in eine längere Aufbewahrung eingewilligt
+    haben.
+  </p>
+
+  <h2>6. Externe Links</h2>
+  <p>
+    Diese Website enthält Links zu Google Maps, OpenStreetMap, Facebook und der Handwerkskammer Oldenburg. Erst wenn Sie
+    einen solchen Link anklicken, verlassen Sie unsere Website; für die Datenverarbeitung auf diesen Seiten sind die
+    jeweiligen Anbieter verantwortlich.
+  </p>
+
+  <h2>7. Verschlüsselung</h2>
+  <p>
+    Diese Website nutzt aus Sicherheitsgründen eine SSL- bzw. TLS-Verschlüsselung. Eine verschlüsselte Verbindung erkennen
+    Sie an „https://“ in der Adresszeile Ihres Browsers.
+  </p>
+
+  <h2>8. Ihre Rechte</h2>
+  <p>Sie haben im Rahmen der gesetzlichen Bestimmungen jederzeit das Recht auf</p>
+  <ul>
+    <li>Auskunft über Ihre gespeicherten Daten (Art. 15 DSGVO),</li>
+    <li>Berichtigung (Art. 16 DSGVO) und Löschung (Art. 17 DSGVO),</li>
+    <li>Einschränkung der Verarbeitung (Art. 18 DSGVO),</li>
+    <li>Datenübertragbarkeit (Art. 20 DSGVO),</li>
+    <li>Widerspruch gegen Verarbeitungen auf Grundlage berechtigter Interessen (Art. 21 DSGVO),</li>
+    <li>Widerruf einer erteilten Einwilligung mit Wirkung für die Zukunft (Art. 7 Abs. 3 DSGVO).</li>
+  </ul>
+  <p>
+    Wenden Sie sich dazu formlos an die oben genannten Kontaktdaten. Außerdem können Sie sich bei einer
+    Datenschutz-Aufsichtsbehörde beschweren, für uns zuständig ist die Landesbeauftragte für den Datenschutz Niedersachsen.
+  </p>
+
+  <p class="small">Stand: Oktober 2026</p>
+</Legal>

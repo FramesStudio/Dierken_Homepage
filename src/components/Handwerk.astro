@@ -1,0 +1,157 @@
+---
+/**
+ * Menschen & Handwerk – kinetische Typografie statt Fotos.
+ * Zwei Schriftbänder laufen gegenläufig mit dem Scroll, ein Zähler zählt die Jahre seit 1985.
+ */
+import { company } from '../data/site';
+const years = new Date().getFullYear() - company.founded;
+const lineA = Array.from({ length: 4 }, () => 'Fliese für Fliese').join(' · ');
+const lineB = Array.from({ length: 4 }, () => `Seit ${company.founded} · Lohne · Familienbetrieb`).join(' · ');
+---
+
+<section class="hw on-navy-deep" aria-labelledby="hw-title" data-hw>
+  <div class="hw-band" aria-hidden="true">
+    <p class="hw-line hw-a" data-hw-line="1">{lineA}</p>
+    <p class="hw-line hw-b" data-hw-line="-1">{lineB}</p>
+  </div>
+
+  <div class="wrap hw-grid">
+    <div class="hw-count" data-reveal>
+      <span class="hw-num num" data-hw-count={years} data-founded={company.founded}>{years}</span>
+      <span class="hw-unit">Jahre<br />Familienbetrieb</span>
+    </div>
+    <div class="hw-copy" data-reveal style="--i:1">
+      <p class="label">Menschen &amp; Handwerk</p>
+      <h2 class="h2" id="hw-title">Ein Familienbetrieb.<br /><em>Seit {company.founded}.</em></h2>
+      <div class="prose lead">
+        <p>Seit der Gründung sind wir in allen Bereichen des Fliesenhandwerks tätig – im Neubau, bei Renovierung und Sanierung.</p>
+        <p>Wir setzen auf kompetente und vertrauensvolle Zusammenarbeit mit Kunden, Geschäftspartnern und Herstellern – und seit jeher auf ein zuverlässiges Team gut ausgebildeter Fachkräfte.</p>
+      </div>
+      <a class="btn btn--light" href="/karriere/">Verstärkung gesucht? Zur Karriere <span class="arrow" aria-hidden="true">→</span></a>
+    </div>
+  </div>
+
+  <div class="hw-band hw-band--end" aria-hidden="true">
+    <p class="hw-line hw-c" data-hw-line="0.6">{lineA}</p>
+  </div>
+</section>
+
+<script>
+  const root = document.querySelector<HTMLElement>('[data-hw]');
+  if (root) {
+    const motion = document.documentElement.classList.contains('motion');
+    const lines = [...root.querySelectorAll<HTMLElement>('[data-hw-line]')];
+    const num = root.querySelector<HTMLElement>('[data-hw-count]')!;
+    // immer aktuell, auch ohne Neubau der Seite
+    const years = new Date().getFullYear() - Number(num.dataset.founded);
+    num.textContent = String(years);
+    if (motion) {
+      let ticking = false;
+      const update = () => {
+        ticking = false;
+        const r = root.getBoundingClientRect();
+        const t = (innerHeight - r.top) / (innerHeight + r.height); // 0…1 durch den Viewport
+        lines.forEach((l) => {
+          const dir = Number(l.dataset.hwLine);
+          l.style.transform = `translate3d(${(-10 + (t - 0.5) * 34 * dir).toFixed(2)}%,0,0)`;
+        });
+      };
+      addEventListener('scroll', () => !ticking && (ticking = true) && requestAnimationFrame(update), { passive: true });
+      update();
+      const io = new IntersectionObserver(([e]) => {
+        if (!e.isIntersecting) return;
+        io.disconnect();
+        const t0 = performance.now();
+        const step = (now: number) => {
+          const k = Math.min(1, (now - t0) / 1600);
+          num.textContent = String(Math.round(years * (1 - Math.pow(1 - k, 4))));
+          if (k < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      }, { threshold: 0.4 });
+      io.observe(num);
+    }
+  }
+</script>
+
+<style>
+  .hw {
+    position: relative;
+    overflow: hidden;
+    padding-block: var(--space-l);
+  }
+  .hw-band {
+    display: grid;
+    gap: 0.1em;
+    font-size: clamp(4rem, 1rem + 11vw, 13rem);
+    font-weight: 900;
+    letter-spacing: -0.05em;
+    line-height: 0.92;
+    white-space: nowrap;
+    user-select: none;
+  }
+  .hw-line {
+    will-change: transform;
+    transform: translate3d(-10%, 0, 0);
+  }
+  .hw-a {
+    color: var(--paper);
+  }
+  .hw-b {
+    font-style: italic;
+    color: transparent;
+    -webkit-text-stroke: 1.5px var(--mist);
+    paint-order: stroke;
+  }
+  .hw-c {
+    color: rgb(188 212 230 / 0.14);
+    font-style: italic;
+  }
+  .hw-band--end {
+    margin-top: var(--space-l);
+  }
+
+  .hw-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--space-m) var(--gap);
+    padding-top: var(--space-l);
+    align-items: center;
+  }
+  .hw-count {
+    grid-column: 1 / span 5;
+    display: flex;
+    align-items: flex-end;
+    gap: 1.2rem;
+  }
+  .hw-num {
+    font-size: clamp(8rem, 4rem + 14vw, 20rem);
+    font-weight: 900;
+    letter-spacing: -0.07em;
+    line-height: 0.78;
+    color: var(--mist);
+  }
+  .hw-unit {
+    padding-bottom: 0.6em;
+    font-size: var(--fs-label);
+    font-weight: 700;
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    color: var(--paper);
+  }
+  .hw-copy {
+    grid-column: 7 / -1;
+    display: grid;
+    gap: 1.6rem;
+    justify-items: start;
+  }
+  @media (max-width: 900px) {
+    .hw-count,
+    .hw-copy {
+      grid-column: 1 / -1;
+    }
+    .hw-b {
+      -webkit-text-stroke-width: 1px;
+    }
+  }
+</style>

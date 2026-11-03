@@ -1,0 +1,20 @@
+# Weiterleitungen der bisherigen Contao-URLs (Apache). Bei anderem Hosting entsprechend übertragen.
+RewriteEngine On
+RewriteRule ^startseite\.html$ / [R=301,L]
+RewriteRule ^ausstellung\.html$ /ausstellung/ [R=301,L]
+RewriteRule ^leistungen\.html$ /leistungen/ [R=301,L]
+RewriteRule ^galerie\.html$ /inspiration/ [R=301,L]
+RewriteRule ^ueber-uns\.html$ / [R=301,L]
+RewriteRule ^karriere\.html$ /karriere/ [R=301,L]
+RewriteRule ^kontakt\.html$ /kontakt/ [R=301,L]
+RewriteRule ^formular-erfolgreich-versendet\.html$ /kontakt/ [R=301,L]
+RewriteRule ^impressum\.html$ /impressum/ [R=301,L]
+RewriteRule ^datenschutz\.html$ /datenschutz/ [R=301,L]
+
+ErrorDocument 404 /404.html
+
+<IfModule mod_headers.c>
+  <FilesMatch "\.(webp|avif|jpg|png|woff2|js|css)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+</IfModule>
